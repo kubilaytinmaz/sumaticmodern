@@ -19,7 +19,7 @@ from app.config import get_settings
 from app.models.user import User
 from app.models.device import Device
 from app.models.reading import DeviceReading
-from app.models.device_status import DeviceStatus
+from app.models.device_status import DeviceHourlyStatus, DeviceStatusSnapshot
 from app.models.register_definition import RegisterDefinition
 
 # this is the Alembic Config object, which provides

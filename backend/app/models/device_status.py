@@ -11,46 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
 
-class DeviceStatus(Base):
-    """
-    Device status history model.
-    Tracks ONLINE/OFFLINE/PENDING status changes.
-    """
-
-    __tablename__ = "device_status"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    device_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("devices.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False
-    )  # ONLINE, OFFLINE, PENDING
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        index=True
-    )
-    ended_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
-    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    status_meta: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSON,
-        default=dict,
-        nullable=True,
-    )
-
-    def __repr__(self) -> str:
-        return f"<DeviceStatus(device_id={self.device_id}, status='{self.status}', started='{self.started_at}')>"
-
-
 class DeviceHourlyStatus(Base):
     """
     Device hourly status tracking model.

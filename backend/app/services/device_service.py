@@ -8,7 +8,6 @@ from sqlalchemy import select, func, or_, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.device import Device
-from app.models.device_status import DeviceStatus
 from app.models.reading import DeviceReading
 from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceStatusResponse
 from app.core.exceptions import NotFoundException, ConflictException
@@ -367,56 +366,3 @@ class DeviceService:
         )
         return list(result.scalars().all())
 
-    @staticmethod
-    async def record_status_change(
-        db: AsyncSession,
-        device_id: int,
-        status: str,
-        started_at: datetime,
-        reason: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> DeviceStatus:
-        """
-        Record a device status change.
-        
-        Args:
-            db: Database session
-            device_id: Device ID
-            status: Status (ONLINE, OFFLINE, PENDING)
-            started_at: When status started
-            reason: Optional reason for status change
-            metadata: Optional metadata
-            
-        Returns:
-            Created DeviceStatus record
-        """
-        # Close previous active status for this device
-        result = await db.execute(
-            select(DeviceStatus).where(
-                and_(
-                    DeviceStatus.device_id == device_id,
-                    DeviceStatus.ended_at.is_(None),
-                )
-            )
-        )
-        active_status = result.scalar_one_or_none()
-        
-        if active_status:
-            active_status.ended_at = started_at
-            active_status.duration_seconds = int(
-                (started_at - active_status.started_at).total_seconds()
-            )
-        
-        # Create new status record
-        new_status = DeviceStatus(
-            device_id=device_id,
-            status=status,
-            started_at=started_at,
-            reason=reason,
-            metadata=metadata or {},
-        )
-        db.add(new_status)
-        await db.flush()
-        await db.refresh(new_status)
-        
-        return new_status

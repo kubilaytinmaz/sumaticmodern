@@ -10,7 +10,6 @@ from sqlalchemy.sql import text as sql_text
 
 from app.models.reading import DeviceReading
 from app.models.device import Device
-from app.models.device_status import DeviceStatus
 from app.core.exceptions import NotFoundException
 
 
