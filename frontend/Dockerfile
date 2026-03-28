@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package.json package-lock.json* yarn.lock* ./
 
 # Install dependencies (including devDependencies regardless of NODE_ENV)
-RUN npm install --include=dev || npm install
+RUN NODE_ENV=development npm install || npm install
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
