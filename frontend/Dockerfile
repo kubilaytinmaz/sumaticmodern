@@ -45,7 +45,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
     NODE_ENV=${NODE_ENV:-development}
 
 # Build the application
-RUN npm run build
+RUN NODE_ENV=development npm run build
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production Runner
