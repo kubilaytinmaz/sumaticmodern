@@ -57,7 +57,7 @@ services:
   # -----------------------------------------------------------------------------
   backend:
     build:
-      context: ../../
+      context: .
       dockerfile: backend/Dockerfile
       target: production
     container_name: sumatic-backend-coolify
@@ -146,7 +146,7 @@ services:
   # -----------------------------------------------------------------------------
   frontend:
     build:
-      context: ../../
+      context: .
       dockerfile: frontend/Dockerfile
       target: runner
     container_name: sumatic-frontend-coolify
