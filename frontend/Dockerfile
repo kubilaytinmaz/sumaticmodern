@@ -40,6 +40,10 @@ RUN echo "=== SOURCE FILES CHECK ===" && \
     echo "Working directory: $(pwd)" && \
     echo "Files in directory:" && \
     ls -la && \
+    echo "Checking for critical files:" && \
+    ls -la src/ && \
+    echo "Checking package.json:" && \
+    cat package.json && \
     echo "============================"
 
 # Build arguments for environment variables
