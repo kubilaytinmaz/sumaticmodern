@@ -21,8 +21,26 @@ COPY package.json package-lock.json* ./
 # Force NODE_ENV=development to ensure devDependencies are installed
 RUN NODE_ENV=development npm install
 
+# Debug: Check if node_modules are installed correctly
+RUN echo "=== NODE_MODULES CHECK ===" && \
+    echo "Node version: $(node --version)" && \
+    echo "NPM version: $(npm --version)" && \
+    echo "NODE_ENV: $NODE_ENV" && \
+    echo "node_modules directory:" && \
+    ls -la node_modules | head -20 && \
+    echo "Checking for critical packages:" && \
+    ls -la node_modules/.bin/ | head -20 && \
+    echo "=========================="
+
 # Copy source code
 COPY . .
+
+# Debug: Check if source files are copied correctly
+RUN echo "=== SOURCE FILES CHECK ===" && \
+    echo "Working directory: $(pwd)" && \
+    echo "Files in directory:" && \
+    ls -la && \
+    echo "============================"
 
 # Build arguments for environment variables
 ARG NEXT_PUBLIC_API_URL
@@ -33,6 +51,13 @@ ARG NODE_ENV=development
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
     NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000} \
     NODE_ENV=${NODE_ENV:-development}
+
+# Debug: Check environment before build
+RUN echo "=== PRE-BUILD ENV CHECK ===" && \
+    echo "NODE_ENV: $NODE_ENV" && \
+    echo "NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL" && \
+    echo "NEXT_PUBLIC_WS_URL: $NEXT_PUBLIC_WS_URL" && \
+    echo "=============================="
 
 # Build the application
 # Force NODE_ENV=development to ensure build works correctly
