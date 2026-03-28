@@ -13,11 +13,21 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
+# Set NODE_ENV to development for dependency installation
+ENV NODE_ENV=development
+
 # Copy package files
 COPY package.json package-lock.json* yarn.lock* ./
 
+# Debug: Show package files
+RUN echo "=== DEPS STAGE DEBUG ===" && \
+    echo "NODE_ENV: $NODE_ENV" && \
+    echo "Package files:" && \
+    ls -la && \
+    echo "========================"
+
 # Install dependencies (including devDependencies regardless of NODE_ENV)
-RUN NODE_ENV=development npm install || npm install
+RUN npm install
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
