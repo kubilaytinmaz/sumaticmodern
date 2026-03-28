@@ -18,7 +18,8 @@ ENV NODE_ENV=development \
 COPY package.json package-lock.json* ./
 
 # Install all dependencies (including devDependencies)
-RUN npm install
+# Force NODE_ENV=development to ensure devDependencies are installed
+RUN NODE_ENV=development npm install
 
 # Copy source code
 COPY . .
@@ -34,7 +35,8 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
     NODE_ENV=${NODE_ENV:-development}
 
 # Build the application
-RUN npm run build
+# Force NODE_ENV=development to ensure build works correctly
+RUN NODE_ENV=development npm run build
 
 # Set environment to production for runtime
 ENV NODE_ENV=production
