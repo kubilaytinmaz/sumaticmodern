@@ -149,6 +149,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: runner
+      args:
+        NODE_ENV: development
     container_name: sumatic-frontend-coolify
     restart: unless-stopped
     environment:
