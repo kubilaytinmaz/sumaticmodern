@@ -44,8 +44,23 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
     NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000} \
     NODE_ENV=${NODE_ENV:-development}
 
-# Build the application
-RUN NODE_ENV=development npm run build
+# Debug: Show environment and node version before build
+RUN echo "=== BUILD DEBUG INFO ===" && \
+    echo "NODE_ENV: $NODE_ENV" && \
+    echo "Node version: $(node --version)" && \
+    echo "NPM version: $(npm --version)" && \
+    echo "Working directory: $(pwd)" && \
+    echo "Files in directory:" && \
+    ls -la && \
+    echo "========================"
+
+# Debug: Check if node_modules are present
+RUN echo "=== NODE_MODULES CHECK ===" && \
+    ls -la node_modules | head -20 && \
+    echo "============================"
+
+# Build the application with verbose output
+RUN NODE_ENV=development npm run build --verbose
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production Runner
