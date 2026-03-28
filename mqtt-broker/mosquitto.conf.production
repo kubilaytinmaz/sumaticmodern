@@ -1,0 +1,174 @@
+# =============================================================================
+# Sumatic Modern IoT - Mosquitto MQTT Broker Configuration (Production)
+# =============================================================================
+# Bu yapılandırma dosyası doğrudan MQTT bağlantısı için production ayarlarını
+# içerir. SSH tüneli olmadan güvenli MQTT bağlantısı sağlar.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Persistence Settings
+# -----------------------------------------------------------------------------
+persistence true
+persistence_location /mosquitto/data/
+autosave_interval 1800
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+log_dest stdout
+log_dest file /mosquitto/log/mosquitto.log
+log_type all
+log_timestamp true
+log_timestamp_format %Y-%m-%dT%H:%M:%S
+
+# =============================================================================
+# ÖNEMLİ: Production için Güvenlik Ayarları
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Authentication & Authorization
+# -----------------------------------------------------------------------------
+
+# Disable anonymous access - authentication required
+allow_anonymous false
+
+# Password file for authentication
+# Generate with: mosquitto_passwd -c /mosquitto/config/passwd sumatic-backend
+password_file /mosquitto/config/passwd
+
+# Access Control List
+acl_file /mosquitto/config/acl
+
+# -----------------------------------------------------------------------------
+# Connection Limits
+# -----------------------------------------------------------------------------
+max_connections 1000
+max_queued_messages 1000
+max_queued_bytes 0
+
+# Connection limits per client
+max_inflight_messages 20
+max_inflight_bytes 0
+max_keepalive 65535
+
+# -----------------------------------------------------------------------------
+# Timeouts
+# -----------------------------------------------------------------------------
+keepalive_interval 60
+connection_messages true
+
+# -----------------------------------------------------------------------------
+# SECURITY CRITICAL: TLS/SSL Encryption for Production
+# -----------------------------------------------------------------------------
+# Production için TLS ZORUNLUDUR. Aşağıdaki ayarlar aktif olmalıdır.
+
+# MQTT over TLS (MQTTS) - Port 8883 - PRIMARY PORT FOR DEVICES
+listener 8883
+protocol mqtt
+cafile /mosquitto/config/certs/ca.crt
+certfile /mosquitto/config/certs/mqtt-server.crt
+keyfile /mosquitto/config/certs/mqtt-server.key
+require_certificate false  # Client certificate optional (can be enabled later)
+tls_version tlsv1.2
+
+# WebSocket with TLS (WSS) - Port 9883 - FOR FRONTEND
+listener 9883
+protocol websockets
+cafile /mosquitto/config/certs/ca.crt
+certfile /mosquitto/config/certs/mqtt-server.crt
+keyfile /mosquitto/config/certs/mqtt-server.key
+require_certificate false
+tls_version tlsv1.2
+
+# Additional TLS security settings
+# tls_version tlsv1.3  # Uncomment for TLS 1.3 only (more secure, less compatible)
+# ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384  # Custom cipher suite
+
+# =============================================================================
+# GÜVENLİK UYARISI: Aşağıdaki portlar production'da KAPALI olmalıdır
+# =============================================================================
+
+# Plain MQTT (NO ENCRYPTION) - DISABLED IN PRODUCTION
+# Sadece test için kullanın, production'da yorum satırı olarak kalmalı
+# listener 1883
+# protocol mqtt
+# allow_anonymous false
+
+# WebSocket without TLS - DISABLED IN PRODUCTION
+# listener 9001
+# protocol websockets
+
+# =============================================================================
+# Rate Limiting & Security
+# =============================================================================
+
+# Maximum pending messages for disconnected clients
+max_queued_messages 1000
+
+# Message size limit (prevents large message attacks)
+message_size_limit 268435456  # 256MB
+
+# Session expiration
+persistent_client_expiration 1d
+
+# -----------------------------------------------------------------------------
+# IP-based Access Control
+# -----------------------------------------------------------------------------
+# IMPORTANT: Mosquitto doesn't have built-in IP whitelist functionality.
+# Use firewall rules (iptables/ufw) or Docker network policies instead.
+#
+# Example iptables rules for production:
+#   # Sadece TLS portuna izin ver
+#   iptables -A INPUT -p tcp --dport 8883 -j ACCEPT
+#   # Plain MQTT portunu engelle
+#   iptables -A INPUT -p tcp --dport 1883 -j DROP
+#
+# Example ufw rules:
+#   ufw allow 8883/tcp  # MQTTS
+#   ufw deny 1883/tcp   # Plain MQTT
+#   ufw allow 9883/tcp  # WSS
+#   ufw deny 9001/tcp   # Plain WebSocket
+
+# =============================================================================
+# Performance Tuning
+# =============================================================================
+
+# Worker threads
+worker_threads 4
+
+# Socket backlog
+socket_domain ipv4
+socket_limit 0
+
+# -----------------------------------------------------------------------------
+# Security Headers
+# -----------------------------------------------------------------------------
+# Enable security headers for WebSocket connections
+# websockets_log_level 0  # 0=normal, 1=debug, 2=errors only
+
+# =============================================================================
+# Monitoring & Debugging
+# =============================================================================
+
+# Connection logging
+connection_messages true
+
+# Log debug information (disable in production for performance)
+# log_debug false
+
+# Sys interval for $SYS topics (set to 0 to disable)
+sys_interval 10
+
+# =============================================================================
+# Production Deployment Checklist
+# =============================================================================
+# [ ] TLS sertifikaları yüklendi ve geçerli
+# [ ] Password dosyası oluşturuldu ve güçlü parolalar ayarlandı
+# [ ] ACL dosyası yapılandırıldı
+# [ ] Plain MQTT port (1883) güvenlik duvarı ile engellendi
+# [ ] Sadece MQTTS port (8883) açık
+# [ ] Fail2ban kurulumu yapıldı
+# [ ] Güvenlik duvarı kuralları uygulandı
+# [ ] Cihaz IP'leri beyaz listeye eklendi
+# [ ] Loglama aktif ve monitor ediliyor
+# [ ] Yedekleme planı hazır

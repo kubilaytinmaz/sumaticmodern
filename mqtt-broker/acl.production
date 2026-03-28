@@ -1,0 +1,104 @@
+# =============================================================================
+# Sumatic Modern IoT - MQTT Access Control List (Production)
+# =============================================================================
+# Bu ACL dosyası doğrudan MQTT bağlantısı için production yetkilendirme 
+# kurallarını içerir. Her kullanıcı için minimum yetki prensibi uygulanır.
+# =============================================================================
+
+# Format:
+# user <username>
+# topic [read|write|readwrite] <topic>
+#
+# Patterns:
+# + - single level wildcard (e.g., sensor/+/temperature)
+# # - multi-level wildcard (e.g., sensor/#)
+# %u - username placeholder
+# %c - client ID placeholder
+
+# =============================================================================
+# Backend Service Access
+# =============================================================================
+# Backend servisi tüm verilere okuma/yazma yetkisine sahiptir
+user sumatic-backend
+topic readwrite Alldatas
+topic readwrite Commands
+topic readwrite device/#
+topic readwrite sensor/#
+topic readwrite status/#
+topic readwrite error/#
+
+# =============================================================================
+# Device Access (Per-Device Authentication)
+# =============================================================================
+# Her cihaz sadece kendi topic'ine yazabilir, sadece komutları okuyabilir
+# Pattern: device_<modem_id>_<device_addr>
+#
+# Örnek cihaz yapılandırmaları (her cihaz için benzersiz kullanıcı oluşturun):
+#
+# user device_MODEM1_001
+# topic write device/MODEM1/001/#
+# topic read device/MODEM1/001/commands
+# topic read Commands/MODEM1/001
+#
+# user device_MODEM2_003
+# topic write device/MODEM2/003/#
+# topic read device/MODEM2/003/commands
+# topic read Commands/MODEM2/003
+
+# =============================================================================
+# Frontend/Dashboard Access
+# =============================================================================
+# Dashboard sadece verileri okuyabilir, komut gönderebilir
+user dashboard
+topic read Alldatas
+topic read device/#
+topic read sensor/#
+topic read status/#
+topic write Commands
+
+# =============================================================================
+# Admin Access
+# =============================================================================
+# Admin kullanıcısı tam yetkiye sahiptir (sadece acil durumlar için)
+user admin
+topic readwrite #
+
+# =============================================================================
+# Monitoring and Logging (Optional)
+# =============================================================================
+# Loglama servisi için (varsa)
+# user logger
+# topic read #
+# topic write log/#
+
+# =============================================================================
+# Read-Only Monitoring User (for external monitoring tools)
+# =============================================================================
+# user monitoring
+# topic read $SYS/#
+# topic read Alldatas
+# topic read status/#
+
+# =============================================================================
+# Production Deployment Notes
+# =============================================================================
+# 
+# 1. Her cihaz için benzersiz kullanıcı oluşturun:
+#    mosquitto_passwd -b passwd device_MODEM1_001
+#
+# 2. Cihaz kullanıcılarını ACL'ye ekleyin:
+#    user device_MODEM1_001
+#    topic write device/MODEM1/001/#
+#    topic read device/MODEM1/001/commands
+#
+# 3. Minimum yetki prensibi:
+#    - Cihazlar sadece kendi topic'ine yazabilir
+#    - Cihazlar sadece kendi komutlarını okuyabilir
+#    - Backend tüm verilere erişebilir
+#    - Dashboard sadece okuma + komut gönderme
+#
+# 4. Güvenlik ipuçları:
+#    - Admin kullanıcısını güçlü şifre ile koruyun
+#    - Monitoring kullanıcısı için ayrı, zayıf yetkili hesap oluşturun
+#    - Düzenli olarak yetkileri gözden geçirin
+#    - Kullanılmayan hesapları silin

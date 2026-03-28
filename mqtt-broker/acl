@@ -1,0 +1,78 @@
+# =============================================================================
+# Sumatic Modern IoT - MQTT Access Control List
+# =============================================================================
+#
+# Format:
+# user <username>
+# topic [read|write|readwrite] <topic>
+#
+# Patterns:
+# + - single level wildcard (e.g., sensor/+/temperature)
+# # - multi-level wildcard (e.g., sensor/#)
+# %u - username placeholder
+# %c - client ID placeholder
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Backend Service Access
+# -----------------------------------------------------------------------------
+user sumatic-backend
+topic readwrite Alldatas
+topic readwrite Commands
+topic readwrite device/#
+topic readwrite sensor/#
+topic readwrite status/#
+
+# -----------------------------------------------------------------------------
+# Device Access (per-device authentication)
+# -----------------------------------------------------------------------------
+# Pattern for devices: each device can only publish to its own topic
+# user device_001
+# topic write device/device_001/#
+# topic read device/device_001/commands
+
+# -----------------------------------------------------------------------------
+# Frontend/Dashboard Access
+# -----------------------------------------------------------------------------
+user dashboard
+topic read Alldatas
+topic read device/#
+topic read status/#
+topic write Commands
+
+# -----------------------------------------------------------------------------
+# Admin Access
+# -----------------------------------------------------------------------------
+user admin
+topic readwrite #
+
+# -----------------------------------------------------------------------------
+# Backend Service (uncomment for production)
+# -----------------------------------------------------------------------------
+# user sumatic-backend
+# topic readwrite Alldatas
+# topic readwrite Commands
+# topic readwrite device/#
+# topic readwrite sensor/#
+
+# -----------------------------------------------------------------------------
+# Device Access (per-device authentication)
+# -----------------------------------------------------------------------------
+# Pattern for devices: each device can only publish to its own topic
+# user device_001
+# topic write device/device_001/#
+# topic read device/device_001/commands
+
+# -----------------------------------------------------------------------------
+# Frontend/Dashboard Access
+# -----------------------------------------------------------------------------
+# user dashboard
+# topic read Alldatas
+# topic read device/#
+# topic write Commands
+
+# -----------------------------------------------------------------------------
+# Admin Access
+# -----------------------------------------------------------------------------
+# user admin
+# topic readwrite #

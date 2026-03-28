@@ -1,0 +1,179 @@
+# ==============================================================================
+# Sumatic Modern IoT - Git Ignore
+# ==============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# ===== CRITICAL: Environment files =====
+# NEVER commit actual .env files with credentials
+backend/.env
+backend/.env.production
+backend/.env.production.backup
+backend/.env.local
+backend/.env.staging
+.env.production
+.env.production.backup
+.env.local
+.env.staging
+# .env.example and .env.production.example are safe to commit (no real credentials)
+
+# ===== CRITICAL: Secret files =====
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+id_ecdsa
+*.pub
+# SSH key files
+backend/ssh_keys/
+deployment/ssh_keys/
+
+# SQLite databases (development only)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+backend/logs/*.log
+backend/logs/*.gz
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel
+
+# TypeScript
+*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Production build
+dist/
+build/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Testing
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Output files
+output*.txt
+check_*.py
+
+# Deployment
+deployment/*.key
+deployment/nginx.conf.bak
+
+# Production secrets script output
+backend/setup_production_secrets.py.output
+
+# ===== CRITICAL: MQTT Security Files =====
+# MQTT certificates and keys
+mqtt-broker/certs/*.key
+mqtt-broker/certs/*.crt
+mqtt-broker/certs/ca.crt
+mqtt-broker/certs/server.crt
+mqtt-broker/certs/server.key
+mqtt-broker/certs/client.crt
+mqtt-broker/certs/client.key
+# Keep certificate generation scripts, ignore generated certs
+# mqtt-broker/certs/  # Entire certs directory
+
+# MQTT password file
+mqtt-broker/passwd
+mqtt-broker/.backend_credentials
+mqtt-broker/.device_credentials
+
+# MQTT configuration backups
+mqtt-broker/*.pre-migration
+mqtt-broker/*.backup
+
+# Production environment files
+backend/.env.production.direct_mqtt
