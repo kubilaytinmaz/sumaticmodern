@@ -151,6 +151,14 @@ check_*.py
 deployment/*.key
 deployment/nginx.conf.bak
 
+# ===== CRITICAL: Coolify Deployment Secrets =====
+# SSH private keys
+deployment/coolify/sumatic_tunnel_key
+deployment/coolify/*_key
+deployment/coolify/*_key.pub
+# Credentials files with real secrets
+deployment/coolify/CREDENTIALS.md
+
 # Production secrets script output
 backend/setup_production_secrets.py.output
 

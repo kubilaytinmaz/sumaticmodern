@@ -222,19 +222,10 @@ NODE_ENV=production
 2. **"Add Secret"** butonuna tıklayın
 3. Aşağıdaki bilgileri girin:
    - **Name**: `SSH_PRIVATE_KEY`
-   - **Value**: (Aşağıdaki private key içeriğini yapıştırın)
+   - **Value**: (Kendi SSH private key'inizi yapıştırın)
 4. **Add** butonuna tıklayın
 
-**Private Key:**
-```
------BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxwAAAKAfBMDKHwTA
-ygAAAAtzc2gtZWQyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxw
-AAAEB43xz2hGs2GRpQir3ZiNNlUsoOOrha0VFREwB6cnMynnGEHfNti/WiHV6+593Aq4/J
-QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
------END OPENSSH PRIVATE KEY-----
-```
+**Not**: SSH key'inizi `ssh-keygen -t ed25519` komutu ile oluşturabilirsiniz.
 
 ---
 

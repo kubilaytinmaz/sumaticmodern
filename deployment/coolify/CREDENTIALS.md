@@ -7,42 +7,42 @@
 ```
 Username: admin
 Email: admin@sumatic.io
-Password: oPf_6th1lXwOIBKQpTcVC64z8b-ZwzF8w-mTiZcQwfc
+Password: YOUR_ADMIN_PASSWORD_HERE
 ```
 
 ## 🔐 Database (PostgreSQL)
 
 ```
 User: sumatic_user
-Password: fFRYbPqdXFzn4KwV0spAW4IUhL39b8PVXhI2gE022rE
+Password: YOUR_DB_PASSWORD_HERE
 Database: sumatic_production
 ```
 
 ## 📦 Redis
 
 ```
-Password: bEYDCdeQRh204E_OkjxxC_Oze_8XHueljdxR8pXUFIY
+Password: YOUR_REDIS_PASSWORD_HERE
 ```
 
 ## 📡 MQTT (SSH Tunnel üzerinden)
 
 ```
 Username: sumatic-backend-prod
-Password: 1CsDlPIgPPXA0y2FuOIRLJHytrjZdxxFemQGmd42wM0
+Password: YOUR_MQTT_PASSWORD_HERE
 Broker: 127.0.0.1:1883 (via SSH tunnel)
 ```
 
 ## 🔑 JWT Secret
 
 ```
-Secret Key: 037f148dd3367297c31571a0483c6d7e0a9f00e1413b5c87e226a3ef3dba91e5
+Secret Key: YOUR_JWT_SECRET_KEY_HERE
 Algorithm: HS256
 ```
 
 ## 🌐 SSH Tunnel
 
 ```
-Remote Host: 31.58.236.246
+Remote Host: YOUR_SSH_HOST_IP_HERE
 SSH User: sumatic-tunnel
 SSH Port: 22
 Remote MQTT: 127.0.0.1:1883
@@ -53,18 +53,12 @@ Local MQTT: 127.0.0.1:1883
 
 **Public Key** (Remote sunucuya ekleyin):
 ```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGEHfNti/WiHV6+593Aq4/JQsILyQbop9O3QxOUgOTH sumatic-tunnel@coolify
+YOUR_SSH_PUBLIC_KEY_HERE
 ```
 
 **Private Key** (Coolify'da secret olarak ekleyin):
 ```
------BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxwAAAKAfBMDKHwTA
-ygAAAAtzc2gtZWQyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxw
-AAAEB43xz2hGs2GRpQir3ZiNNlUsoOOrha0VFREwB6cnMynnGEHfNti/WiHV6+593Aq4/J
-QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
------END OPENSSH PRIVATE KEY-----
+YOUR_SSH_PRIVATE_KEY_HERE
 ```
 
 **Key Files:**
@@ -75,7 +69,7 @@ QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
 
 1. **Admin Panel**: `https://your-domain.com/login`
 2. **Username**: `admin`
-3. **Password**: `oPf_6th1lXwOIBKQpTcVC64z8b-ZwzF8w-mTiZcQwfc`
+3. **Password**: (Yukarıda belirlediğiniz şifre)
 
 ## 📝 Notlar
 
@@ -91,10 +85,10 @@ QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
 
 ```bash
 # Remote sunucuya bağlanın
-ssh root@31.58.236.246
+ssh root@YOUR_SSH_HOST_IP
 
 # Public key'i authorized_keys'e ekleyin
-echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGEHfNti/WiHV6+593Aq4/JQsILyQbop9O3QxOUgOTH sumatic-tunnel@coolify' >> /home/sumatic-tunnel/.ssh/authorized_keys
+echo 'YOUR_SSH_PUBLIC_KEY_HERE' >> /home/sumatic-tunnel/.ssh/authorized_keys
 
 # İzinleri ayarla
 chmod 600 /home/sumatic-tunnel/.ssh/authorized_keys
@@ -112,7 +106,7 @@ chown sumatic-tunnel:sumatic-tunnel /home/sumatic-tunnel/.ssh/authorized_keys
 ### SSH Bağlantı Testi
 
 ```bash
-ssh -i deployment/coolify/sumatic_tunnel_key sumatic-tunnel@31.58.236.246
+ssh -i deployment/coolify/sumatic_tunnel_key sumatic-tunnel@YOUR_SSH_HOST_IP
 ```
 
 ## 🔧 Şifre Değiştirme

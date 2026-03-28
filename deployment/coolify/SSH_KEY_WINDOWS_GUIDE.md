@@ -12,19 +12,13 @@ SSH key'ler zaten oluşturuldu ve `deployment/coolify/` dizininde mevcut:
 ### Public Key (Remote Sunucuya Ekleyin)
 
 ```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHGEHfNti/WiHV6+593Aq4/JQsILyQbop9O3QxOUgOTH sumatic-tunnel@coolify
+YOUR_SSH_PUBLIC_KEY_HERE
 ```
 
 ### Private Key (Coolify'da Secret Olarak Ekleyin)
 
 ```
------BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxwAAAKAfBMDKHwTA
-ygAAAAtzc2gtZWQyNTUxOQAAACBxhB3zbYv1oh1evufdwKuPyULCC8kG6KfTt0MTlIDkxw
-AAAEB43xz2hGs2GRpQir3ZiNNlUsoOOrha0VFREwB6cnMynnGEHfNti/WiHV6+593Aq4/J
-QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
------END OPENSSH PRIVATE KEY-----
+YOUR_SSH_PRIVATE_KEY_HERE
 ```
 
 ---
@@ -34,7 +28,7 @@ QsILyQbop9O3QxOUgOTHAAAAFnN1bWF0aWMtdHVubmVsQGNvb2xpZnkBAgMEBQYH
 ### 1. Remote Sunucuya Bağlanın
 
 ```bash
-ssh root@31.58.236.246
+ssh root@YOUR_SSH_HOST_IP
 ```
 
 ### 2. SSH Kullanıcısı Oluşturun (Henüz yoksa)
