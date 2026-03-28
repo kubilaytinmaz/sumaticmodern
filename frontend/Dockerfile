@@ -41,10 +41,12 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 # Build arguments for environment variables
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WS_URL
+ARG NODE_ENV=development
 
 # Set environment variables from build args
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
-    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000} \
+    NODE_ENV=${NODE_ENV:-development}
 
 # Build the application
 RUN npm run build
