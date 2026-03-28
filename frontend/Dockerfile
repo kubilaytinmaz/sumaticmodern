@@ -16,12 +16,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* yarn.lock* ./
 
-# Install dependencies
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm install; \
-  else npm install; \
-  fi
+# Install dependencies (including devDependencies regardless of NODE_ENV)
+RUN npm install --include=dev || npm install
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
