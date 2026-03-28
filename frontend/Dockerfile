@@ -67,10 +67,18 @@ RUN echo "=== BUILD DEBUG INFO ===" && \
 # Debug: Check if node_modules are present
 RUN echo "=== NODE_MODULES CHECK ===" && \
     ls -la node_modules | head -20 && \
+    echo "Checking for critical devDependencies:" && \
+    ls -la node_modules/.bin/ | head -20 && \
     echo "============================"
 
-# Build the application with verbose output
-RUN NODE_ENV=development npm run build --verbose
+# Debug: Check if next binary exists
+RUN echo "=== NEXT BINARY CHECK ===" && \
+    which next || echo "next binary not found in PATH" && \
+    ls -la node_modules/.bin/next || echo "next binary not found in node_modules/.bin/" && \
+    echo "=========================="
+
+# Build the application with verbose output and error capture
+RUN NODE_ENV=development npm run build 2>&1 || (echo "=== BUILD FAILED ===" && npm run build 2>&1 && exit 1)
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production Runner
