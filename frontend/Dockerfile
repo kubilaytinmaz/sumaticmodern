@@ -13,8 +13,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install all dependencies
-RUN npm install
+# Install all dependencies with verbose output
+RUN npm install --verbose
 
 # Copy source code
 COPY . .
@@ -25,7 +25,8 @@ ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000
 
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
-    NODE_ENV=production
+    NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=4096"
 
 # Show environment info for debugging
 RUN echo "=== BUILD INFO ===" && \
@@ -34,15 +35,21 @@ RUN echo "=== BUILD INFO ===" && \
     echo "NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}" && \
     echo "NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}" && \
     echo "NODE_ENV: ${NODE_ENV}" && \
+    echo "NODE_OPTIONS: ${NODE_OPTIONS}" && \
     echo "=================="
 
 # Type check first to show TypeScript errors clearly
 RUN echo "=== TYPE CHECK ===" && \
-    npx tsc --noEmit 2>&1 || echo "TypeScript check warnings (non-fatal)"
+    npx tsc --noEmit 2>&1 || true
 
-# Build the application with verbose output
-RUN echo "=== STARTING NPM BUILD ===" && \
-    npm run build 2>&1 && \
+# Build the application using next build directly
+RUN echo "=== STARTING NEXT BUILD ===" && \
+    npx next build --debug 2>&1 || { \
+        echo "=== BUILD FAILED ==="; \
+        echo "Checking .next directory..."; \
+        ls -la .next 2>/dev/null || echo "No .next directory"; \
+        exit 1; \
+    } && \
     echo "=== BUILD SUCCESS ==="
 
 # Expose port
