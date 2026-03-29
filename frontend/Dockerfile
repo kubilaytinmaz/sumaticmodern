@@ -24,10 +24,26 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000
 
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
-    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
+    NODE_ENV=production
 
-# Build the application
-RUN npm run build
+# Show environment info for debugging
+RUN echo "=== BUILD INFO ===" && \
+    echo "Node version: $(node --version)" && \
+    echo "NPM version: $(npm --version)" && \
+    echo "NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}" && \
+    echo "NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}" && \
+    echo "NODE_ENV: ${NODE_ENV}" && \
+    echo "=================="
+
+# Type check first to show TypeScript errors clearly
+RUN echo "=== TYPE CHECK ===" && \
+    npx tsc --noEmit 2>&1 || echo "TypeScript check warnings (non-fatal)"
+
+# Build the application with verbose output
+RUN echo "=== STARTING NPM BUILD ===" && \
+    npm run build 2>&1 && \
+    echo "=== BUILD SUCCESS ==="
 
 # Expose port
 EXPOSE 3000
