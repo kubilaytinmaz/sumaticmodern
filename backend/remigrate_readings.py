@@ -35,8 +35,13 @@ async def remigrate():
 
     print(f"Using SQLite: {SQLITE_DB_PATH}")
     
-    # Connect to SQLite
-    sqlite_conn = sqlite3.connect(f"file:{SQLITE_DB_PATH}?mode=ro", uri=True)
+    # Connect to SQLite - try different approaches for readonly access
+    try:
+        sqlite_conn = sqlite3.connect(f"file:{SQLITE_DB_PATH}?mode=ro", uri=True)
+    except:
+        # Fallback to regular connection (might work if permissions allow)
+        sqlite_conn = sqlite3.connect(SQLITE_DB_PATH)
+    
     sqlite_conn.row_factory = sqlite3.Row
     sqlite_cur = sqlite_conn.cursor()
     
