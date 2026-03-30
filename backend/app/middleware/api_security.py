@@ -66,6 +66,10 @@ class ResponseFilterMiddleware(BaseHTTPMiddleware):
         # For error responses and health checks, don't filter
         if response.status_code >= 400 or request.url.path == "/health":
             return response
+        
+        # Don't filter authentication endpoints - they intentionally return tokens
+        if request.url.path.startswith("/api/v1/auth"):
+            return response
 
         # Read response body
         body = b""
