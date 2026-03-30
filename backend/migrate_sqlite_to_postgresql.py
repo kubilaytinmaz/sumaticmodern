@@ -31,7 +31,29 @@ from app.models.user import User
 from app.core.security import get_password_hash
 
 
-SQLITE_DB_PATH = Path(__file__).parent / "sumatic_modern.db"
+# Try multiple possible locations for SQLite database
+POSSIBLE_PATHS = [
+    Path(__file__).parent / "sumatic_modern.db",  # /app/sumatic_modern.db
+    Path(__file__).parent / "backend" / "sumatic_modern.db",  # /app/backend/sumatic_modern.db
+    Path("/app/backend/sumatic_modern.db"),
+    Path("/app/sumatic_modern.db"),
+]
+
+# Check environment variable first
+import os
+ENV_DB_PATH = os.getenv("SQLITE_DB_PATH")
+if ENV_DB_PATH:
+    POSSIBLE_PATHS.insert(0, Path(ENV_DB_PATH))
+
+# Find the first existing database file
+SQLITE_DB_PATH = None
+for path in POSSIBLE_PATHS:
+    if path.exists():
+        SQLITE_DB_PATH = path
+        break
+
+if SQLITE_DB_PATH is None:
+    SQLITE_DB_PATH = POSSIBLE_PATHS[0]  # Use first as default for error messages
 
 # Device mapping from old system
 DEVICE_MAPPING = {
@@ -56,12 +78,24 @@ async def check_postgresql_connection():
 
 def check_sqlite_file():
     """Check if SQLite file exists."""
-    if not SQLITE_DB_PATH.exists():
-        print(f"❌ SQLite database not found: {SQLITE_DB_PATH}")
-        print(f"\nPlease upload sumatic_modern.db to: {SQLITE_DB_PATH.parent}")
-        return False
-    print(f"✅ SQLite database found: {SQLITE_DB_PATH}")
-    return True
+    global SQLITE_DB_PATH
+    
+    # Try to find database in multiple locations
+    for path in POSSIBLE_PATHS:
+        if path.exists():
+            SQLITE_DB_PATH = path
+            print(f"✅ SQLite database found: {SQLITE_DB_PATH}")
+            return True
+    
+    print(f"❌ SQLite database not found in any of these locations:")
+    for path in POSSIBLE_PATHS:
+        print(f"   - {path}")
+    
+    print(f"\n📋 Please upload sumatic_modern.db using one of these methods:")
+    print(f"   1. Coolify Files tab: Upload to /app/")
+    print(f"   2. Set environment variable: SQLITE_DB_PATH=/path/to/sumatic_modern.db")
+    print(f"   3. Copy to container: docker cp sumatic_modern.db <container>:/app/")
+    return False
 
 
 def get_sqlite_stats():
