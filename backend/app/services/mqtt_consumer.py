@@ -360,11 +360,16 @@ class MQTTConsumer:
         register_map = get_register_map()
         spike_filter = get_spike_filter()
         
+        # Debug: Log parsing attempt
+        logger.debug(f"{device_code}: Parsing with method_no={method_no}, data_len={len(parsed.get('data', b''))}")
+        
         if method_no == 1:
             result = ModbusParser.method_1(parsed)
             if not result:
+                logger.debug(f"{device_code}: Method 1 returned None, data={parsed.get('data', b'').hex()}")
                 return
             fc, reg, val = result
+            logger.debug(f"{device_code}: Method 1 result: fc={fc}, reg={reg}, val={val}")
             wrote_any = self._normalize_and_write(
                 device_id, device_code, cfg, fc, reg, val,
                 register_map, spike_filter,
@@ -373,15 +378,26 @@ class MQTTConsumer:
         elif method_no == 2:
             triples = ModbusParser.method_2(parsed)
             if not triples:
+                logger.debug(f"{device_code}: Method 2 returned None/empty, data={parsed.get('data', b'').hex()}")
                 return
             # method_2 returns list of (fc, reg, value) tuples
             # Process each register value
+            logger.debug(f"{device_code}: Method 2 returned {len(triples)} triples")
             for fc, reg, val in triples:
+                logger.debug(f"{device_code}: Processing triple: fc={fc}, reg={reg}, val={val}")
                 if self._normalize_and_write(
                     device_id, device_code, cfg, fc, reg, val,
                     register_map, spike_filter,
                 ):
                     wrote_any = True
+        
+        # Log if nothing was written
+        if not wrote_any:
+            logger.warning(f"{device_code}: No data written! method_no={method_no}, data={parsed.get('data', b'').hex()}")
+            add_mqtt_log("warning", f"No data written for {device_code}", device_code=device_code, modem_id=modem_id, data={
+                "method_no": method_no,
+                "data_hex": parsed.get('data', b'').hex()[:100]
+            })
         
         if wrote_any:
             self._last_seen[device_code] = time.time()
@@ -474,6 +490,7 @@ class MQTTConsumer:
         for fc2, reg2 in pairs:
             col_name = register_map.get_name(fc2, reg2)
             if not col_name:
+                logger.debug(f"{device_code}: No register mapping for fc={fc2}, reg={reg2}")
                 continue
             
             # Apply spike filter
