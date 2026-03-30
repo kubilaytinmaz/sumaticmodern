@@ -12,7 +12,7 @@ from app.core.logging import get_logger
 from app.database import async_session_maker
 from app.models.device import Device
 from app.models.reading import DeviceReading
-from app.services.mqtt_consumer import get_mqtt_consumer
+from app.services.insertion_log import get_recent_insertions, InsertionLogEntry
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["Live Data"])
@@ -31,58 +31,16 @@ class DeviceLiveData(BaseModel):
     last_db_reading: Optional[Dict[str, Any]] = None
 
 
-class DatabaseInsertion(BaseModel):
-    """Recent database insertion record."""
-    id: int
-    device_id: int
-    device_code: str
-    timestamp: str
-    counter_19l: Optional[int] = None
-    counter_5l: Optional[int] = None
-    status: str
-    created_at: str
 
 
 class LiveDataResponse(BaseModel):
     """Response containing all live data."""
     devices: List[DeviceLiveData]
-    recent_insertions: List[DatabaseInsertion]
+    recent_insertions: List[InsertionLogEntry]
     mqtt_status: Dict[str, Any]
     timestamp: str
 
 
-# In-memory storage for recent insertions (last 100)
-_recent_insertions: List[DatabaseInsertion] = []
-_max_insertions = 100
-
-
-def add_insertion_log(
-    device_id: int,
-    device_code: str,
-    timestamp: datetime,
-    counter_19l: Optional[int],
-    counter_5l: Optional[int],
-    status: str
-):
-    """Add a database insertion log to in-memory storage."""
-    insertion = DatabaseInsertion(
-        id=len(_recent_insertions) + 1,
-        device_id=device_id,
-        device_code=device_code,
-        timestamp=timestamp.isoformat(),
-        counter_19l=counter_19l,
-        counter_5l=counter_5l,
-        status=status,
-        created_at=datetime.utcnow().isoformat()
-    )
-    _recent_insertions.append(insertion)
-    if len(_recent_insertions) > _max_insertions:
-        _recent_insertions.pop(0)
-
-
-def get_recent_insertions(limit: int = 50) -> List[DatabaseInsertion]:
-    """Get recent database insertion logs."""
-    return _recent_insertions[-limit:]
 
 
 @router.get("/live-data", response_model=LiveDataResponse)
@@ -99,6 +57,8 @@ async def get_live_data(
         Live data including device status, cache, and recent DB insertions
     """
     try:
+        # Import here to avoid circular imports
+        from app.services.mqtt_consumer import get_mqtt_consumer
         mqtt_consumer = get_mqtt_consumer()
         mqtt_status = mqtt_consumer.get_status()
         
@@ -182,7 +142,7 @@ async def get_live_data(
         raise
 
 
-@router.get("/live-data/insertions", response_model=List[DatabaseInsertion])
+@router.get("/live-data/insertions", response_model=List[InsertionLogEntry])
 async def get_live_insertions(limit: int = Query(default=50, ge=1, le=200)):
     """Get recent database insertion logs."""
     return get_recent_insertions(limit)

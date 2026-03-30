@@ -25,7 +25,7 @@ from app.services.spike_filter import get_spike_filter
 from app.services.websocket_manager import get_websocket_manager
 from app.core.logging import get_logger
 from app.api.v1.mqtt_logs import add_mqtt_log
-from app.api.v1.live_data import add_insertion_log
+from app.services.insertion_log import add_insertion_log
 
 settings = get_settings()
 logger = get_logger(__name__)
