@@ -55,6 +55,41 @@ async def lifespan(app: FastAPI):
         logger.error(f"Database initialization error: {e}")
         # Continue anyway - tables might already exist via Alembic
     
+    # Create admin user from environment variables
+    try:
+        from app.database import async_session_maker
+        from app.models.user import User
+        from app.core.security import get_password_hash
+        from sqlalchemy import select
+        import os
+        
+        admin_username = os.getenv("ADMIN_USERNAME", "admin")
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@sumatic.io")
+        admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
+        
+        async with async_session_maker() as session:
+            result = await session.execute(
+                select(User).where(User.username == admin_username)
+            )
+            existing = result.scalar_one_or_none()
+            
+            if not existing:
+                admin = User(
+                    username=admin_username,
+                    email=admin_email,
+                    password_hash=get_password_hash(admin_password),
+                    full_name="Admin User",
+                    role="admin",
+                    is_active=True,
+                )
+                session.add(admin)
+                await session.commit()
+                logger.info(f"[OK] Admin user created: {admin_username}")
+            else:
+                logger.info(f"[OK] Admin user already exists: {admin_username}")
+    except Exception as e:
+        logger.warning(f"[WARN] Admin user creation skipped: {e}")
+    
     # Initialize Redis
     from app.redis_client import get_redis
     try:
