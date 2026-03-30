@@ -76,6 +76,11 @@ COPY --chown=appuser:appgroup . .
 # Create logs directory with proper permissions
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
 
+# Copy entrypoint script for SSH key handling
+# Note: This file is copied from backend/entrypoint.sh in the build context
+COPY --chown=appuser:appgroup entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Switch to non-root user
 USER appuser
 
@@ -86,8 +91,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Default command
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use entrypoint script to handle SSH key from environment variable
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # -----------------------------------------------------------------------------
 # Stage 3: Development (optional)
