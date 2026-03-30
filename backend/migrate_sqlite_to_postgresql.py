@@ -313,7 +313,7 @@ async def main():
         return
     
     # Open SQLite connection
-    sqlite_conn = sqlite3.connect(str(SQLITE_DB_PATH))
+    sqlite_conn = sqlite3.connect(f"file:{str(SQLITE_DB_PATH)}?immutable=1", uri=True)
     
     try:
         async with async_session_maker() as session:
