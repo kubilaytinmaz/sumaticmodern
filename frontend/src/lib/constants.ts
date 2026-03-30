@@ -2,8 +2,8 @@
  * Chart colors for data visualization
  */
 export const CHART_COLORS = {
-  primary: '#3b82f6',    // blue-500
-  secondary: '#8b5cf6',  // violet-500
+  primary: '#22c55e',    // green-500
+  secondary: '#f97316',  // orange-500
   success: '#22c55e',    // green-500
   warning: '#f59e0b',    // amber-500
   danger: '#ef4444',     // red-500
