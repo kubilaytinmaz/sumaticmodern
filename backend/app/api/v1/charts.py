@@ -1414,8 +1414,8 @@ async def get_monthly_stats(
             last_day_revenue = daily_deltas.get(last_day_key, 0)
             
             # Dünün Cirosu = Gerçek dünün (yesterday) delta değeri
-            # Şu anki tarihin bir önceki gününü bul
-            today = datetime.now().date()
+            # Şu anki tarihin bir önceki gününü bul (UTC olarak)
+            today = datetime.utcnow().date()
             yesterday = today - timedelta(days=1)
             yesterday_key = yesterday.strftime("%Y-%m-%d")
             
@@ -1434,10 +1434,14 @@ async def get_monthly_stats(
                     daily_offline_hours_yesterday = 0
             
             # En İyi Gün = En fazla delta yapılan gün
-            max_day_revenue = max(daily_deltas.values()) if daily_deltas else 0
-            max_day_date = max(daily_deltas, key=daily_deltas.get) if daily_deltas else ""
-            if max_day_date:
-                max_day_date = datetime.strptime(max_day_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+            try:
+                max_day_revenue = max(daily_deltas.values()) if daily_deltas else 0
+                max_day_date = max(daily_deltas, key=daily_deltas.get) if daily_deltas else ""
+                if max_day_date:
+                    max_day_date = datetime.strptime(max_day_date, "%Y-%m-%d").strftime("%d.%m.%Y")
+            except (ValueError, KeyError) as e:
+                max_day_revenue = 0
+                max_day_date = ""
             
             # Ortalama Günlük Kazanç = Aylık kümülatif toplam / gün sayısı
             # Ayın kaçıncı günündeyiz (örn: 26)
