@@ -121,15 +121,42 @@ def main():
     print("\n💾 Bu bilgileri güvenli bir yerde saklayın!")
     print("="*80)
     
-    # Admin şifre güncelleme komutları
+    # Şifre güncelleme komutları
     print("\n" + "="*80)
-    print("ADMİN ŞİFRESİNİ GÜNCELLEME")
+    print("TÜM ŞİFRELERİ GÜNCELLEME KOMUTLARI")
     print("="*80)
-    print("\n📝 Database'de admin kullanıcısı varsa, şifresini güncellemek için:")
+    
+    print("\n🔐 1. POSTGRESQL KULLANICI ŞİFRESİNİ GÜNCELLEME")
+    print("-" * 80)
+    print("\nCoolify Terminal'de **postgres** container'ını seçin ve şu komutu çalıştırın:\n")
+    print(f"psql -U {postgres_user} -d {postgres_db} -c \"ALTER USER {postgres_user} WITH PASSWORD '{postgres_password}';\"")
+    
+    print("\n\n🔑 2. REDIS ŞİFRESİNİ GÜNCELLEME")
+    print("-" * 80)
+    print("\nCoolify Terminal'de **redis** container'ını seçin ve şu komutu çalıştırın:\n")
+    print(f"redis-cli CONFIG SET requirepass '{redis_password}'")
+    print(f"redis-cli AUTH '{redis_password}'")
+    print(f"redis-cli CONFIG REWRITE")
+    print(f"redis-cli SAVE")
+    
+    print("\n\n👤 3. ADMİN KULLANICI ŞİFRESİNİ GÜNCELLEME")
+    print("-" * 80)
     print("\nCoolify Terminal'de **backend** container'ını seçin ve şu komutu çalıştırın:\n")
     print(f"cd /app && python change_admin_password.py \"{admin_password}\"")
-    print("\nVEYA PostgreSQL terminalinden doğrudan güncelleyin:\n")
-    print(f"psql -U {postgres_user} -d {postgres_db} -c \"UPDATE users SET password_hash = crypt('{admin_password}', gen_salt('bf')) WHERE username = 'admin';\"")
+    
+    print("\n\n🔄 4. TÜM SERVİSLERİ YENİDEN BAŞLATMA SIRASI")
+    print("-" * 80)
+    print("\n1. PostgreSQL → Restart")
+    print("2. Redis → Restart")
+    print("3. Backend → Restart (admin kullanıcısı otomatik oluşturulur)")
+    print("4. Frontend → Rebuild (NEXT_PUBLIC_* değişkenler build time'da bake edilir)")
+    
+    print("\n\n💻 5. GİRİŞ BİLGİLERİ")
+    print("-" * 80)
+    print(f"\n   URL: http://46.225.231.44:3001/login")
+    print(f"   Username: admin")
+    print(f"   Password: {admin_password}")
+    
     print("\n" + "="*80)
 
 
