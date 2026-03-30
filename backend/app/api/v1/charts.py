@@ -1230,15 +1230,14 @@ async def get_monthly_stats(
     """
     try:
         # Get current local time for offline calculations
-        from datetime import timezone
-        now_local = datetime.now(timezone.utc)
+        now_local = datetime.utcnow()
         
-        # Calculate month start and end (UTC timezone)
-        month_start = datetime(year, month, 1, tzinfo=timezone.utc)
+        # Calculate month start and end (naive UTC - matches PostgreSQL naive timestamps from migration)
+        month_start = datetime(year, month, 1)
         if month == 12:
-            month_end = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
         else:
-            month_end = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end = datetime(year, month + 1, 1) - timedelta(seconds=1)
         
         # Turkish month name
         month_names_tr = [
@@ -1464,23 +1463,22 @@ async def get_monthly_stats(
         # Calculate per-device offline hours from device_readings.status
         # Her cihaz için o ay içinde OFFLINE sürelerini hesapla
         # Timestamp farklarını kullanarak gerçek offline süresini hesapla
-        from datetime import timezone
-        month_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
+        month_start_dt = datetime(year, month, 1)
         if month == 12:
-            month_end_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end_dt = datetime(year + 1, 1, 1) - timedelta(seconds=1)
         else:
-            month_end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end_dt = datetime(year, month + 1, 1) - timedelta(seconds=1)
         
         device_offline_hours_list = []
         for device in devices:
             # Query device_readings for this device in the month with offline status
-            # Sıralı şekilde alarak timestamp farklarını hesapla
+            # Using EXTRACT to avoid timezone issues - compare year/month directly
             offline_readings_result = await db.execute(
                 select(DeviceReading.timestamp, DeviceReading.status)
                 .where(
                     (DeviceReading.device_id == device.id) &
-                    (DeviceReading.timestamp >= month_start_dt) &
-                    (DeviceReading.timestamp <= month_end_dt)
+                    (func.extract('year', DeviceReading.timestamp) == year) &
+                    (func.extract('month', DeviceReading.timestamp) == month)
                 )
                 .order_by(DeviceReading.timestamp.asc())
             )
