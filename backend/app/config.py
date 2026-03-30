@@ -106,14 +106,14 @@ def get_settings() -> Settings:
             "⚠️ SECURITY WARNING: JWT_SECRET_KEY is using the default insecure value! "
             "Set JWT_SECRET_KEY environment variable to a strong random string (min 32 characters) "
             "before deploying to production. Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\"",
-            SecurityWarning,
+            UserWarning,
             stacklevel=2
         )
     elif len(settings.JWT_SECRET_KEY) < 32:
         warnings.warn(
             "⚠️ SECURITY WARNING: JWT_SECRET_KEY is too short (less than 32 characters). "
             "Use a stronger random key for production. Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\"",
-            SecurityWarning,
+            UserWarning,
             stacklevel=2
         )
     
@@ -122,7 +122,7 @@ def get_settings() -> Settings:
             "⚠️ SECURITY WARNING: SSH_PASSWORD is set in production (DEBUG=False). "
             "Migrate to SSH key-based authentication for better security. "
             "Generate SSH key with: ssh-keygen -t ed25519 -f ~/.ssh/sumatic_tunnel_key",
-            SecurityWarning,
+            UserWarning,
             stacklevel=2
         )
     
@@ -134,7 +134,7 @@ def get_settings() -> Settings:
             warnings.warn(
                 f"⚠️ SECURITY WARNING: Localhost origins found in CORS_ORIGINS in production (DEBUG=False): {localhost_origins}. "
                 "Remove localhost origins and use only production domains.",
-                SecurityWarning,
+                UserWarning,
                 stacklevel=2
             )
         
@@ -143,7 +143,7 @@ def get_settings() -> Settings:
             warnings.warn(
                 "⚠️ SECURITY WARNING: Using SQLite in production (DEBUG=False). "
                 "SQLite is not suitable for production. Migrate to PostgreSQL for better performance, concurrency, and security.",
-                SecurityWarning,
+                UserWarning,
                 stacklevel=2
             )
     
