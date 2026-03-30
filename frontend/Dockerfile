@@ -1,9 +1,12 @@
 # =============================================================================
 # Sumatic Modern IoT - Frontend Dockerfile
-# Simplified single-stage build for Coolify compatibility
+# Multi-stage build for optimized production image
 # =============================================================================
 
-FROM node:20-alpine
+# -----------------------------------------------------------------------------
+# Stage 1: Dependencies
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS deps
 
 # Install libc6-compat for Alpine compatibility
 RUN apk add --no-cache libc6-compat
@@ -13,10 +16,18 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install all dependencies with verbose output
-RUN npm install --verbose
+# Install dependencies
+RUN npm ci --legacy-peer-deps 2>&1 || npm install --legacy-peer-deps 2>&1
 
-# Copy source code
+# -----------------------------------------------------------------------------
+# Stage 2: Builder
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set environment variables for build
@@ -26,42 +37,44 @@ ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
     NODE_ENV=production \
-    NODE_OPTIONS="--max-old-space-size=4096"
+    NEXT_TELEMETRY_DISABLED=1
 
-# Show environment info for debugging
-RUN echo "=== BUILD INFO ===" && \
-    echo "Node version: $(node --version)" && \
-    echo "NPM version: $(npm --version)" && \
-    echo "NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}" && \
-    echo "NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}" && \
-    echo "NODE_ENV: ${NODE_ENV}" && \
-    echo "NODE_OPTIONS: ${NODE_OPTIONS}" && \
-    echo "=================="
+# Build the application
+RUN npm run build 2>&1
 
-# Type check first to show TypeScript errors clearly
-RUN echo "=== TYPE CHECK ===" && \
-    npx tsc --noEmit 2>&1 || true
+# -----------------------------------------------------------------------------
+# Stage 3: Runner
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS runner
 
-# Build the application using next build directly
-RUN echo "=== STARTING NEXT BUILD ===" && \
-    npx next build --debug 2>&1 || { \
-        echo "=== BUILD FAILED ==="; \
-        echo "Checking .next directory..."; \
-        ls -la .next 2>/dev/null || echo "No .next directory"; \
-        exit 1; \
-    } && \
-    echo "=== BUILD SUCCESS ==="
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0"
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built application from builder stage
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set correct ownership
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
 
 # Expose port
 EXPOSE 3000
-
-# Set port and hostname
-ENV PORT=3000 \
-    HOSTNAME="0.0.0.0"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

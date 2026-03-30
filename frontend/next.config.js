@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone', // Disabled for Coolify compatibility
+  output: 'standalone',
   reactStrictMode: true,
   swcMinify: true,
   async rewrites() {
