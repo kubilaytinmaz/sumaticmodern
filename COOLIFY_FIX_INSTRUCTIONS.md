@@ -22,23 +22,15 @@ POST http://46.225.231.44:8000/api/v1/auth/login 404 (Not Found)
 
 ### 2. Environment Variables'ları Güncelle
 
-Frontend servisinde aşağıdaki environment variable'ları düzenleyin:
+**ÖNEMLİ:** Frontend servisinde aşağıdaki environment variable'ları **MUTLAKA** düzenleyin:
 
 ```bash
-# Eski değer (yanlış):
-NEXT_PUBLIC_API_URL=http://46.225.231.44:8000
-
-# Yeni değer (doğru):
+# Backend port 8001'e değiştirildi, frontend de bunu kullanmalı:
 NEXT_PUBLIC_API_URL=http://46.225.231.44:8001
-```
-
-```bash
-# Eski değer (yanlış):
-NEXT_PUBLIC_WS_URL=ws://46.225.231.44:8000
-
-# Yeni değer (doğru):
 NEXT_PUBLIC_WS_URL=ws://46.225.231.44:8001
 ```
+
+**Not:** Bu değerler frontend'in build time'da bake edilir. Bu yüzden değişiklik yaptıktan sonra frontend'i **rebuild etmeniz şart**.
 
 ### 3. Backend Environment Variables (Opsiyonel Kontrol)
 
