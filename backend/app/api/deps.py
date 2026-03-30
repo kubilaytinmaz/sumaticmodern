@@ -11,9 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
+from app.core.logging import get_logger
 from app.database import get_db
 from app.models.user import User
 from app.redis_client import is_token_blacklisted
+
+logger = get_logger(__name__)
 
 # HTTP Bearer scheme for JWT
 security = HTTPBearer()
@@ -46,39 +49,51 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    # Debug logging for token validation
+    logger.debug(f"Token validation attempt. Token length: {len(token)}, Token prefix: {token[:20] if len(token) > 20 else token}...")
+    
     try:
         payload = decode_token(token)
-    except JWTError:
+        logger.debug(f"Token decoded successfully. Payload: {payload}")
+    except JWTError as e:
+        logger.warning(f"Token decode failed: {e}")
         raise credentials_exception
     
     # Check token type
     if payload.get("type") != "access":
+        logger.warning(f"Invalid token type: {payload.get('type')}, expected 'access'")
         raise credentials_exception
     
     # Check token blacklist (for logged out tokens)
     jti = payload.get("jti")
     if jti and await is_token_blacklisted(jti):
+        logger.warning(f"Token is blacklisted. JTI: {jti}")
         raise credentials_exception
     
     # Get user from database
     user_id = payload.get("sub")
     if user_id is None:
+        logger.warning("Token payload missing 'sub' field")
         raise credentials_exception
     
+    logger.debug(f"Looking up user with ID: {user_id}")
     result = await db.execute(
         select(User).where(User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
     
     if user is None:
+        logger.warning(f"User not found with ID: {user_id}")
         raise credentials_exception
     
     if not user.is_active:
+        logger.warning(f"User account is disabled: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is disabled",
         )
     
+    logger.debug(f"User authenticated successfully: {user.username}")
     return user
 
 

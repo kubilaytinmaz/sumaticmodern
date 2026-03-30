@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Security
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:8000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://localhost:8000,http://46.225.231.44:8001"
     RATE_LIMIT_PER_MINUTE: int = 100
 
     # Timezone
