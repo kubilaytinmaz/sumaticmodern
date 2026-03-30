@@ -90,6 +90,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"[WARN] Admin user creation skipped: {e}")
     
+    # Fix status case: ONLINE/OFFLINE/PARTIAL -> online/offline/partial
+    try:
+        from app.database import async_session_maker
+        from sqlalchemy import text
+        
+        async with async_session_maker() as session:
+            result = await session.execute(text(
+                "UPDATE device_readings SET status = LOWER(status) WHERE status IN ('ONLINE','OFFLINE','PARTIAL')"
+            ))
+            await session.commit()
+            if result.rowcount > 0:
+                logger.info(f"[OK] Fixed status case for {result.rowcount} device_readings")
+    except Exception as e:
+        logger.warning(f"[WARN] Status case fix skipped: {e}")
+    
     # Initialize Redis
     from app.redis_client import get_redis
     try:

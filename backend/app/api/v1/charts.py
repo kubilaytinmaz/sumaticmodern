@@ -1490,16 +1490,17 @@ async def get_monthly_stats(
             
             for reading in offline_readings:
                 timestamp, status = reading
+                status_lower = (status or '').lower()
                 
-                if status == 'offline' and offline_start is None:
+                if status_lower == 'offline' and offline_start is None:
                     # Offline başlangıcı
                     offline_start = timestamp
-                elif status == 'online' and offline_start is not None:
+                elif status_lower == 'online' and offline_start is not None:
                     # Offline bitişi, süreyi ekle
                     duration = (timestamp - offline_start).total_seconds() / 3600.0
                     offline_hours += duration
                     offline_start = None
-                elif status == 'offline' and offline_start is not None:
+                elif status_lower == 'offline' and offline_start is not None:
                     # Hala offline, süre devam ediyor (hiçbir şey yapma)
                     pass
             
