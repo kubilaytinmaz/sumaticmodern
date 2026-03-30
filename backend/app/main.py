@@ -105,6 +105,36 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"[WARN] Status case fix skipped: {e}")
     
+    # Ensure register definitions exist (seed if empty)
+    try:
+        from app.database import async_session_maker
+        from app.models.register_definition import RegisterDefinition
+        from sqlalchemy import select
+        
+        async with async_session_maker() as session:
+            result = await session.execute(select(RegisterDefinition))
+            existing_regs = result.scalars().all()
+            
+            if len(existing_regs) == 0:
+                # Add default register definitions
+                registers = [
+                    (3, 100, "Sıcaklık"), (3, 101, "Nem"), (3, 102, "Basınç"),
+                    (3, 1000, "Sıcaklık 1"), (3, 1001, "Sıcaklık 2"), (3, 1002, "Sıcaklık 3"),
+                    (3, 1003, "Sıcaklık 4"), (3, 1004, "Sıcaklık 5"), (3, 1005, "Sıcaklık 6"),
+                    (3, 1006, "Sıcaklık 7"), (3, 1007, "Sıcaklık 8"), (3, 1453, "Diğer 1"),
+                    (4, 2000, "Sayac 1"), (4, 2001, "Sayac 2"), (4, 2002, "Çıkış-1 Durum"),
+                    (4, 2003, "Çıkış-2 Durum"), (4, 2004, "Acil Arıza Durumu"),
+                    (4, 2005, "Sayac Toplam Low16"), (4, 2006, "Sayac Toplam High16"),
+                ]
+                for fc, reg, name in registers:
+                    session.add(RegisterDefinition(fc=fc, reg=reg, name=name))
+                await session.commit()
+                logger.info(f"[OK] Seeded {len(registers)} register definitions")
+            else:
+                logger.info(f"[OK] Register definitions found: {len(existing_regs)} entries")
+    except Exception as e:
+        logger.warning(f"[WARN] Register definition seeding skipped: {e}")
+    
     # Initialize Redis
     from app.redis_client import get_redis
     try:
