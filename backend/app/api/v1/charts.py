@@ -1229,15 +1229,15 @@ async def get_monthly_stats(
         - Günlük toplam makine başına offline süresi
     """
     try:
-        # Get current local time for offline calculations
-        now_local = datetime.utcnow()
+        # Get current UTC time for offline calculations
+        now_local = datetime.now(timezone.utc)
         
-        # Calculate month start and end (naive UTC - matches PostgreSQL naive timestamps from migration)
-        month_start = datetime(year, month, 1)
+        # Calculate month start and end (timezone-aware UTC - matches PostgreSQL TIMESTAMPTZ)
+        month_start = datetime(year, month, 1, tzinfo=timezone.utc)
         if month == 12:
-            month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            month_end = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         else:
-            month_end = datetime(year, month + 1, 1) - timedelta(seconds=1)
+            month_end = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         
         # Turkish month name
         month_names_tr = [
@@ -1415,7 +1415,7 @@ async def get_monthly_stats(
             
             # Dünün Cirosu = Gerçek dünün (yesterday) delta değeri
             # Şu anki tarihin bir önceki gününü bul (UTC olarak)
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             yesterday = today - timedelta(days=1)
             yesterday_key = yesterday.strftime("%Y-%m-%d")
             
@@ -1467,11 +1467,11 @@ async def get_monthly_stats(
         # Calculate per-device offline hours from device_readings.status
         # Her cihaz için o ay içinde OFFLINE sürelerini hesapla
         # Timestamp farklarını kullanarak gerçek offline süresini hesapla
-        month_start_dt = datetime(year, month, 1)
+        month_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
         if month == 12:
-            month_end_dt = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            month_end_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         else:
-            month_end_dt = datetime(year, month + 1, 1) - timedelta(seconds=1)
+            month_end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         
         device_offline_hours_list = []
         for device in devices:
