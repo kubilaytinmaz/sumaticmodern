@@ -100,7 +100,7 @@ def check_sqlite_file():
 
 def get_sqlite_stats():
     """Get statistics from SQLite database."""
-    conn = sqlite3.connect(str(SQLITE_DB_PATH))
+    conn = sqlite3.connect(f"file:{str(SQLITE_DB_PATH)}?immutable=1", uri=True)
     cur = conn.cursor()
     
     stats = {}
