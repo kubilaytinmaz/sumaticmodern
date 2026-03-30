@@ -286,6 +286,11 @@ async def migrate_readings(session: AsyncSession, sqlite_conn: sqlite3.Connectio
 
 async def main():
     """Main migration function."""
+    import sys as _sys
+    
+    # Check for --yes flag
+    auto_confirm = "--yes" in _sys.argv or "-y" in _sys.argv
+    
     print("\n" + "="*60)
     print("  Sumatic Modern IoT - SQLite to PostgreSQL Migration")
     print("="*60)
@@ -304,13 +309,20 @@ async def main():
         print(f"  {table}: {count}")
     
     # Confirm migration
-    print("\n⚠️  This will migrate data from SQLite to PostgreSQL.")
-    print("⚠️  Existing records with same device_code will be skipped.")
-    response = input("\nProceed with migration? (yes/no): ")
-    
-    if response.lower() != 'yes':
-        print("\n❌ Migration cancelled")
-        return
+    if auto_confirm:
+        print("\n✅ Auto-confirmed with --yes flag. Starting migration...")
+    else:
+        print("\n⚠️  This will migrate data from SQLite to PostgreSQL.")
+        print("⚠️  Existing records with same device_code will be skipped.")
+        print("💡 Tip: Use --yes flag to skip confirmation")
+        try:
+            response = input("\nProceed with migration? (yes/no): ")
+            if response.lower() != 'yes':
+                print("\n❌ Migration cancelled")
+                return
+        except EOFError:
+            print("\n❌ No input available. Use --yes flag for non-interactive mode.")
+            return
     
     # Open SQLite connection
     sqlite_conn = sqlite3.connect(f"file:{str(SQLITE_DB_PATH)}?immutable=1", uri=True)
