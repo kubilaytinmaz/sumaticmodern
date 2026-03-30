@@ -246,16 +246,21 @@ async def migrate_readings(session: AsyncSession, sqlite_conn: sqlite3.Connectio
             print(f"  ⚠️  Invalid timestamp: {timestamp_str}, using current time")
             timestamp = datetime.utcnow()
         
-        # Determine status based on counter values
+        # Use original status from SQLite if available, otherwise calculate
         counter_19l = data.get('counter_19l')
         counter_5l = data.get('counter_5l')
         
-        if counter_19l is not None and counter_5l is not None:
-            status = 'ONLINE'
+        sqlite_status = data.get('status', '').lower() if data.get('status') else None
+        
+        if sqlite_status in ('online', 'offline', 'partial'):
+            # Use original SQLite status value (preserve historical data)
+            status = sqlite_status
+        elif counter_19l is not None and counter_5l is not None:
+            status = 'online'
         elif counter_19l is None and counter_5l is None:
-            status = 'OFFLINE'
+            status = 'offline'
         else:
-            status = 'PARTIAL'
+            status = 'partial'
         
         reading = DeviceReading(
             device_id=new_device_id,
