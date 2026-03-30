@@ -34,8 +34,13 @@ export const useAuth = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          // Login request with JSON (not FormData)
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${endpoints.login}`, {
+          // Login request - use relative URL to leverage Next.js rewrites proxy
+          // This avoids CORS issues and port configuration problems
+          const apiUrl = typeof window !== 'undefined'
+            ? '' // Client-side: use relative URL (proxied by Next.js rewrites)
+            : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+          
+          const response = await fetch(`${apiUrl}${endpoints.login}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

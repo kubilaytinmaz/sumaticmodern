@@ -1,6 +1,14 @@
 import { AuthStorage } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+/**
+ * API Base URL strategy:
+ * - Client-side (browser): Use empty string to leverage Next.js rewrites proxy
+ *   This avoids CORS issues and port configuration problems
+ * - Server-side (SSR): Use the full backend URL for server-to-server calls
+ */
+const API_BASE_URL = typeof window !== 'undefined'
+  ? '' // Client-side: relative URLs proxied by Next.js rewrites
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
 
 /**
  * API endpoint paths

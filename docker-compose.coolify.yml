@@ -153,6 +153,9 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+      # Internal Docker network URL for Next.js rewrites proxy
+      # Frontend reaches backend via service name on internal port
+      BACKEND_INTERNAL_URL: http://backend:8000
     ports:
       - "3001:3000"
     depends_on:
