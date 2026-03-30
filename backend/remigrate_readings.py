@@ -30,16 +30,23 @@ for path in POSSIBLE_PATHS:
 
 async def remigrate():
     if not SQLITE_DB_PATH:
-        print("ERROR: SQLite file not found!")
+        print("ERROR: SQLite file found!")
         return
 
     print(f"Using SQLite: {SQLITE_DB_PATH}")
     
-    # Connect to SQLite - try different approaches for readonly access
+    # Try to make SQLite file writable by copying it
+    import shutil
+    import os
+    
+    writable_path = "/tmp/sumatic_modern_copy.db"
     try:
-        sqlite_conn = sqlite3.connect(f"file:{SQLITE_DB_PATH}?mode=ro", uri=True)
-    except:
-        # Fallback to regular connection (might work if permissions allow)
+        shutil.copy2(SQLITE_DB_PATH, writable_path)
+        print(f"Copied SQLite to writable location: {writable_path}")
+        sqlite_conn = sqlite3.connect(writable_path)
+    except Exception as e:
+        print(f"Could not copy SQLite file: {e}")
+        # Try direct connection anyway
         sqlite_conn = sqlite3.connect(SQLITE_DB_PATH)
     
     sqlite_conn.row_factory = sqlite3.Row
