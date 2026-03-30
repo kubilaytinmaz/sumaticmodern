@@ -57,6 +57,7 @@ export default function MQTTLogsPage() {
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [expandedLogs, setExpandedLogs] = useState<ExpandedLog>({});
+  const [allExpanded, setAllExpanded] = useState<boolean>(true);
   const [stats, setStats] = useState({
     total: 0,
     errors: 0,
@@ -238,6 +239,27 @@ export default function MQTTLogsPage() {
       [index]: !prev[index],
     }));
   };
+
+  const toggleAllExpanded = () => {
+    if (allExpanded) {
+      setExpandedLogs({});
+      setAllExpanded(false);
+    } else {
+      const all: ExpandedLog = {};
+      filteredLogs.forEach((_, i) => { all[i] = true; });
+      setExpandedLogs(all);
+      setAllExpanded(true);
+    }
+  };
+
+  // Auto-expand new logs when allExpanded is true
+  useEffect(() => {
+    if (allExpanded) {
+      const all: ExpandedLog = {};
+      filteredLogs.forEach((_, i) => { all[i] = true; });
+      setExpandedLogs(all);
+    }
+  }, [filteredLogs, allExpanded]);
 
   const exportLogs = (format: 'json' | 'csv') => {
     let content: string;
@@ -452,6 +474,13 @@ export default function MQTTLogsPage() {
               >
                 {liveMode ? '📍 Canlı Mod Aktif' : '📍 Canlı Mod Kapalı'}
               </Button>
+              <Button
+                variant={allExpanded ? 'default' : 'outline'}
+                size="sm"
+                onClick={toggleAllExpanded}
+              >
+                {allExpanded ? '🔼 Tümünü Kapat' : '🔽 Tümünü Aç'}
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -527,9 +556,9 @@ export default function MQTTLogsPage() {
                       {log.data && (
                         <button className="text-muted-foreground hover:text-foreground">
                           {expandedLogs[index] ? (
-                            <ChevronDown className="w-4 h-4" />
-                          ) : (
                             <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
                           )}
                         </button>
                       )}
@@ -555,8 +584,8 @@ export default function MQTTLogsPage() {
                     </div>
                   </div>
 
-                  {/* Expanded JSON Data */}
-                  {log.data && expandedLogs[index] && (
+                  {/* Expanded JSON Data - shown when expanded OR allExpanded */}
+                  {log.data && (expandedLogs[index] ?? allExpanded) && (
                     <div className="px-3 py-2 bg-muted/50 border-t border-border/20">
                       <pre className="text-xs bg-background rounded p-3 overflow-x-auto max-w-full">
                         {JSON.stringify(log.data, null, 2)}
