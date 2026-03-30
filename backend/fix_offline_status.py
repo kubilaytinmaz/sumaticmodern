@@ -19,13 +19,14 @@ from sqlalchemy import text
 
 
 async def fix_status():
-    # Connect to SQLite
+    # Connect to SQLite - use URI with read-only mode to avoid write issues
     sqlite_path = '/app/sumatic_modern.db'
     if not os.path.exists(sqlite_path):
         print(f"ERROR: SQLite file not found at {sqlite_path}")
         return
     
-    sqlite_conn = sqlite3.connect(sqlite_path)
+    # Open in read-only mode using URI
+    sqlite_conn = sqlite3.connect(f"file:{sqlite_path}?mode=ro", uri=True)
     sqlite_cur = sqlite_conn.cursor()
     
     # Get all device mappings first
@@ -35,8 +36,8 @@ async def fix_status():
     
     # Get all offline readings from SQLite (including those with counter values)
     sqlite_cur.execute("""
-        SELECT device_id, timestamp 
-        FROM device_readings 
+        SELECT device_id, timestamp
+        FROM device_readings
         WHERE status='offline'
         AND (counter_19l IS NOT NULL OR counter_5l IS NOT NULL)
     """)
