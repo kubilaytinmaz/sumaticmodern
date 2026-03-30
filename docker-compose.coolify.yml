@@ -126,7 +126,7 @@ services:
       - ssh_keys:/app/.ssh:ro
       - backend_logs:/app/logs
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,7 +154,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - backend
     healthcheck:
