@@ -19,6 +19,7 @@ import paramiko
 
 from app.config import get_settings
 from app.core.logging import get_logger
+from app.api.v1.mqtt_logs import add_mqtt_log
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -137,6 +138,7 @@ class SSHTunnelManager:
                 f"{settings.SSH_HOST}:{settings.SSH_PORT} -> "
                 f"{settings.SSH_LOCAL_MQTT_HOST}:{settings.SSH_LOCAL_MQTT_PORT}"
             )
+            add_mqtt_log("info", f"🔗 SSH tüneli başarıyla kuruldu: {settings.SSH_HOST}:{settings.SSH_PORT}")
             
             # Start health monitoring task
             asyncio.create_task(self._monitor_loop())
@@ -149,6 +151,7 @@ class SSHTunnelManager:
             self._failed_connections += 1
             self._record_failure()
             logger.error(f"[ERROR] Failed to start SSH tunnel: {error_msg}")
+            add_mqtt_log("error", f"❌ SSH tüneli kurma başarısız: {error_msg}")
             self._running = False
             return False
 
@@ -237,6 +240,7 @@ class SSHTunnelManager:
             return False
 
         logger.warning("SSH tunnel inactive, attempting reconnection...")
+        add_mqtt_log("warning", "⚠️ SSH tüneli aktif değil, yeniden bağlanılıyor...")
         return await self._reconnect()
 
     async def _reconnect(self) -> bool:

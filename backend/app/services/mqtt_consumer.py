@@ -200,6 +200,7 @@ class MQTTConsumer:
         """MQTT on_connect callback."""
         if reason_code == 0:
             logger.info("MQTT broker connected successfully")
+            add_mqtt_log("info", "✅ MQTT broker bağlantısı başarılı")
             
             # Subscribe to topics
             client.subscribe(settings.MQTT_TOPIC_ALLDATAS)
@@ -211,14 +212,18 @@ class MQTTConsumer:
                 f"{settings.MQTT_TOPIC_COMMANDS}, "
                 f"{settings.MQTT_TOPIC_COMMANDS}/#"
             )
+            add_mqtt_log("info", f"📡 Konular (topics) abone: {settings.MQTT_TOPIC_ALLDATAS}, {settings.MQTT_TOPIC_COMMANDS}")
         else:
             logger.error(f"MQTT connection failed: {reason_code}")
+            add_mqtt_log("error", f"❌ MQTT bağlantı başarısız: Kod {reason_code}")
 
     def _on_disconnect(self, client, userdata, flags, reason_code, properties=None):
         """MQTT on_disconnect callback."""
         logger.warning(f"MQTT disconnected: {reason_code}")
+        add_mqtt_log("warning", f"⚠️ MQTT bağlantısı kesildi: Kod {reason_code}")
         if self._running:
             logger.info("MQTT will auto-reconnect...")
+            add_mqtt_log("info", "🔄 MQTT otomatik yeniden bağlanıyor...")
 
     def _on_message(self, client, userdata, msg):
         """

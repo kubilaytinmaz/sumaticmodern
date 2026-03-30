@@ -32,12 +32,9 @@ _max_logs = 200
 def add_mqtt_log(level: str, message: str, device_code: str = None, modem_id: str = None, data: dict = None):
     """Add a log entry to the in-memory storage.
     
-    Only stores warning and error level logs to reduce RAM usage.
-    Info/debug level calls are silently skipped.
+    Stores all log levels for monitoring SSH tunnel and MQTT connection status.
     """
-    # RAM optimizasyonu: sadece warning ve error loglarını tut
-    if level not in ("warning", "error"):
-        return
+    # Tüm log seviyelerini tut - SSH tunnel ve MQTT bağlantı durumunu görmek için
     
     entry = MQTTLogEntry(
         timestamp=datetime.utcnow().isoformat(),
