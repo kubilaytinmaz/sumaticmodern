@@ -53,7 +53,7 @@ export default function MQTTLogsPage() {
   const [modemFilter, setModemFilter] = useState<string>('all');
   const [deviceFilter, setDeviceFilter] = useState<string>('all');
   const [liveMode, setLiveMode] = useState<boolean>(true);
-  const [limit, setLimit] = useState<number>(100);
+  const [limit, setLimit] = useState<number>(1000);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [expandedLogs, setExpandedLogs] = useState<ExpandedLog>({});
@@ -432,10 +432,11 @@ export default function MQTTLogsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="50">50</SelectItem>
                   <SelectItem value="100">100</SelectItem>
                   <SelectItem value="200">200</SelectItem>
                   <SelectItem value="500">500</SelectItem>
+                  <SelectItem value="1000">1000</SelectItem>
+                  <SelectItem value="2000">2000</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -510,7 +511,7 @@ export default function MQTTLogsPage() {
               </div>
             </div>
           ) : (
-            <div className="max-h-[600px] overflow-y-auto font-mono text-sm">
+            <div className="max-h-[800px] overflow-y-auto font-mono text-sm">
               {filteredLogs.map((log, index) => (
                 <div
                   key={`${log.timestamp}-${index}`}

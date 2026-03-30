@@ -24,9 +24,9 @@ class MQTTLogEntry(BaseModel):
     data: dict | None = None
 
 
-# In-memory log storage (last 200 entries - reduced from 1000 for RAM optimization)
+# In-memory log storage (last 2000 entries for comprehensive debugging)
 _mqtt_logs: List[MQTTLogEntry] = []
-_max_logs = 200
+_max_logs = 2000
 
 
 def add_mqtt_log(level: str, message: str, device_code: str = None, modem_id: str = None, data: dict = None):
@@ -55,17 +55,17 @@ def get_recent_logs(limit: int = 100) -> List[MQTTLogEntry]:
 
 
 @router.get("/mqtt-logs", response_model=List[MQTTLogEntry])
-async def get_mqtt_logs(limit: int = 100):
+async def get_mqtt_logs(limit: int = 1000):
     """
     Get recent MQTT logs.
     
     Args:
-        limit: Maximum number of logs to return (default: 100, max: 1000)
+        limit: Maximum number of logs to return (default: 1000, max: 2000)
     
     Returns:
         List of MQTT log entries
     """
-    limit = min(max(1, limit), 1000)
+    limit = min(max(1, limit), 2000)
     return get_recent_logs(limit)
 
 

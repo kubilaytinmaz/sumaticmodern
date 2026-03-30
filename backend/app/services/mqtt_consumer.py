@@ -393,10 +393,21 @@ class MQTTConsumer:
         
         # Log if nothing was written
         if not wrote_any:
-            logger.warning(f"{device_code}: No data written! method_no={method_no}, data={parsed.get('data', b'').hex()}")
+            raw_data = parsed.get('data', b'')
+            slave_id = int(parsed.get('slave_id', 0))
+            full_payload_hex = parsed.get('raw_payload', '')
+            logger.warning(
+                f"{device_code}: No data written! method_no={method_no}, "
+                f"slave_id={slave_id}, data_hex={raw_data.hex()}, "
+                f"full_payload={full_payload_hex[:80]}"
+            )
             add_mqtt_log("warning", f"No data written for {device_code}", device_code=device_code, modem_id=modem_id, data={
                 "method_no": method_no,
-                "data_hex": parsed.get('data', b'').hex()[:100]
+                "slave_id": slave_id,
+                "slave_id_hex": hex(slave_id),
+                "data_hex": raw_data.hex(),
+                "data_len": len(raw_data),
+                "full_payload_first32": full_payload_hex[:64]
             })
         
         if wrote_any:
