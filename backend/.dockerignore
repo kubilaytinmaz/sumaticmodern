@@ -52,10 +52,13 @@ docs/
 *.log
 logs/
 
-# Database
+# Database (exclude from Docker build)
 *.db
 *.sqlite
 *.sqlite3
+
+# Exception: Include sumatic_modern.db for one-time migration
+!sumatic_modern.db
 
 # Temporary files
 tmp/
