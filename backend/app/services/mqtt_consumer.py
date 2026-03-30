@@ -25,6 +25,7 @@ from app.services.spike_filter import get_spike_filter
 from app.services.websocket_manager import get_websocket_manager
 from app.core.logging import get_logger
 from app.api.v1.mqtt_logs import add_mqtt_log
+from app.api.v1.live_data import add_insertion_log
 
 settings = get_settings()
 logger = get_logger(__name__)
@@ -303,11 +304,14 @@ class MQTTConsumer:
             logger.debug(f"Skipping slave list response: modem={modem_id} addr={addr}")
             return
         
-        # Log incoming data
-        add_mqtt_log("info", "Received Alldatas message", modem_id=modem_id, data={
+        # Log incoming data - ham payload bilgisi
+        ts = parsed.get("timestamp")
+        ts_str = ts.strftime("%Y-%m-%d %H:%M:%S") if ts else "?"
+        add_mqtt_log("info", f"Received Alldatas message", modem_id=modem_id, data={
             "device_addr": addr,
-            "timestamp": parsed.get("timestamp"),
-            "payload_size": len(payload)
+            "device_timestamp": ts_str,
+            "payload_size": len(payload),
+            "raw_hex_preview": payload[:16].hex() if len(payload) >= 16 else payload.hex()
         })
         
         # Look up device configuration
@@ -573,19 +577,32 @@ class MQTTConsumer:
                     now = time.time()
                     age = now - last_seen
                     is_online = last_seen > 0 and age <= settings.DEVICE_OFFLINE_THRESHOLD_SECONDS
+                    reading_status = "online" if is_online else "offline"
                     
                     reading = DeviceReading(
                         device_id=device_id,
                         timestamp=time_slot,
                         counter_19l=int(counter_19l) if counter_19l is not None else None,
                         counter_5l=int(counter_5l) if counter_5l is not None else None,
-                        status="online" if is_online else "offline"
+                        status=reading_status
                     )
                     session.add(reading)
                     logger.info(
                         f"{device_code}: New reading created for slot {time_slot.strftime('%H:%M')} "
                         f"- 19L={counter_19l}, 5L={counter_5l}, status={reading.status}"
                     )
+                    # Log insertion to live_data
+                    try:
+                        add_insertion_log(
+                            device_id=device_id,
+                            device_code=device_code,
+                            timestamp=time_slot,
+                            counter_19l=int(counter_19l) if counter_19l is not None else None,
+                            counter_5l=int(counter_5l) if counter_5l is not None else None,
+                            status=reading_status
+                        )
+                    except Exception as log_err:
+                        logger.debug(f"Insertion log error (non-critical): {log_err}")
                 
                 await session.commit()
                 

@@ -333,9 +333,9 @@ function renderComposedChart(data: RevenueData[], height: number) {
         type="monotone"
         dataKey="total"
         name="Toplam (trend)"
-        stroke="#10b981"
+        stroke="#3b82f6"
         strokeWidth={2.5}
-        dot={{ r: 3, fill: '#10b981', strokeWidth: 0 }}
+        dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
         activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
       />
     </ComposedChart>

@@ -13,6 +13,7 @@ import {
   ChevronUp,
   List,
   Activity,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,11 @@ const navigation = [
     name: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+  },
+  {
+    name: 'Canlı Veri',
+    href: '/live-data',
+    icon: Database,
   },
   {
     name: 'MQTT Loglar',

@@ -13,6 +13,7 @@ from app.api.v1.websocket import router as websocket_router
 from app.api.v1.charts import router as charts_router
 from app.api.v1.mqtt_logs import router as mqtt_logs_router
 from app.api.v1.monitoring import router as monitoring_router
+from app.api.v1.live_data import router as live_data_router
 
 
 def create_api_router() -> APIRouter:
@@ -34,6 +35,7 @@ def create_api_router() -> APIRouter:
     api_router.include_router(charts_router)
     api_router.include_router(mqtt_logs_router)
     api_router.include_router(monitoring_router)
+    api_router.include_router(live_data_router)
     
     return api_router
   
