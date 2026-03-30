@@ -125,8 +125,8 @@ services:
       # SSH key için volume (Coolify secrets olarak eklenmeli)
       - ssh_keys:/app/.ssh:ro
       - backend_logs:/app/logs
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,8 +153,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       - backend
     healthcheck:
