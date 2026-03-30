@@ -10,12 +10,20 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Format a number as Turkish Lira currency
+ * @param value - The number to format
+ * @param showSymbol - Whether to show the currency symbol (default: true)
  */
-export function formatMoney(value: number): string {
-  if (value === null || value === undefined) return '₺0';
+export function formatMoney(value: number, showSymbol: boolean = true): string {
+  if (value === null || value === undefined) return showSymbol ? '₺0' : '0';
+  if (showSymbol) {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency: 'TRY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
   return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'TRY',
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
