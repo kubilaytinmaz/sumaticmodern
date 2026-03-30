@@ -85,6 +85,11 @@ class MQTTConsumer:
         self._snapshot_tracking: Dict[str, Dict[str, Any]] = {}
         self._last_snapshot_check: float = 0.0
         self._snapshot_interval: float = 10 * 60.0  # 10 minutes
+        
+        # RAM optimizması: cache boyutunu sınırla
+        self._max_cache_entries_per_device: int = 100  # Her cihaz için max 100 register
+        self._last_cleanup_time: float = 0.0
+        self._cleanup_interval: float = 3600.0  # 1 saatte bir temizlik
 
     async def start(self) -> None:
         """Start the MQTT consumer."""
@@ -467,9 +472,17 @@ class MQTTConsumer:
                 logger.debug(f"SPIKE rejected: device={device_code} {col_name}={val}")
                 continue
             
-            # Write to cache
+            # Write to cache (with RAM protection)
             if device_code not in self._cache:
                 self._cache[device_code] = {}
+            
+            # RAM koruması: cihaz başına max kayıt sınırını aşarsa eski değerleri temizle
+            if len(self._cache[device_code]) >= self._max_cache_entries_per_device:
+                # En eski yarısını sil
+                keys_to_remove = list(self._cache[device_code].keys())[:self._max_cache_entries_per_device // 2]
+                for old_key in keys_to_remove:
+                    del self._cache[device_code][old_key]
+                logger.debug(f"{device_code}: Cache trimmed, removed {len(keys_to_remove)} old entries")
             
             self._cache[device_code][col_name] = int(val)
             logger.debug(f"{device_code} {col_name}={val} (fc={fc2}, reg={reg2})")
@@ -901,6 +914,20 @@ class MQTTConsumer:
                     await self._update_snapshots(all_device_codes)
                     self._last_snapshot_check = now
                 
+                # RAM optimizasyonu: Periyodik temizlik (her saat)
+                if now - self._last_cleanup_time >= self._cleanup_interval:
+                    await self._cleanup_old_data()
+                    
+                    # WebSocket stale connection cleanup
+                    try:
+                        from app.services.websocket_manager import get_websocket_manager
+                        ws_manager = get_websocket_manager()
+                        await ws_manager.cleanup_stale_connections()
+                    except Exception as e:
+                        logger.error(f"Error cleaning up WebSocket connections: {e}")
+                    
+                    self._last_cleanup_time = now
+                
             except Exception as e:
                 logger.error(f"Error in MQTT monitor loop: {e}")
             
@@ -1217,6 +1244,61 @@ class MQTTConsumer:
         except Exception as e:
             logger.error(f"Error saving snapshot for {device_code}: {e}")
 
+    async def _cleanup_old_data(self) -> None:
+        """
+        RAM optimizasyonu: Eski veritabanı kayıtlarını temizle.
+        Her saat çalışır, 7 günden eski verileri siler.
+        """
+        try:
+            from sqlalchemy import delete
+            from app.models.device_status import DeviceHourlyStatus, DeviceStatusSnapshot
+            
+            cutoff_date = datetime.now(IST_TIMEZONE) - timedelta(days=7)
+            
+            async with async_session_maker() as session:
+                # 7 günden eski hourly status kayıtlarını sil
+                result_hourly = await session.execute(
+                    delete(DeviceHourlyStatus)
+                    .where(DeviceHourlyStatus.hour_start < cutoff_date)
+                )
+                hourly_deleted = result_hourly.rowcount
+                
+                # 30 günden eski snapshot kayıtlarını sil
+                cutoff_snapshots = datetime.now(IST_TIMEZONE) - timedelta(days=30)
+                result_snapshots = await session.execute(
+                    delete(DeviceStatusSnapshot)
+                    .where(DeviceStatusSnapshot.snapshot_time < cutoff_snapshots)
+                )
+                snapshots_deleted = result_snapshots.rowcount
+                
+                await session.commit()
+                
+                if hourly_deleted > 0 or snapshots_deleted > 0:
+                    logger.info(
+                        f"RAM cleanup: Deleted {hourly_deleted} old hourly records "
+                        f"and {snapshots_deleted} old snapshots"
+                    )
+                
+        except Exception as e:
+            logger.error(f"Error in RAM cleanup: {e}")
+
+    def get_memory_stats(self) -> Dict[str, Any]:
+        """
+        RAM kullanımı istatistiklerini döndür.
+        Memory monitoring için kullanılır.
+        """
+        total_cache_entries = sum(len(cache) for cache in self._cache.values())
+        
+        return {
+            "cached_devices": len(self._cache),
+            "total_cache_entries": total_cache_entries,
+            "hourly_tracking_entries": len(self._hourly_tracking),
+            "snapshot_tracking_entries": len(self._snapshot_tracking),
+            "pending_saves": len(self._pending_saves),
+            "max_cache_per_device": self._max_cache_entries_per_device,
+            "last_cleanup": self._last_cleanup_time,
+        }
+
     def get_status(self) -> Dict[str, Any]:
         """Get MQTT consumer status."""
         return {
@@ -1227,6 +1309,7 @@ class MQTTConsumer:
             "cached_devices": len(self._cache),
             "broker_host": settings.MQTT_BROKER_HOST,
             "broker_port": settings.MQTT_BROKER_PORT,
+            "memory_stats": self.get_memory_stats(),
         }
 
 

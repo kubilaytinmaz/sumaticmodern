@@ -397,6 +397,30 @@ class WebSocketManager:
         # Also send to "alerts" topic subscribers
         await self.broadcast_to_topic("alerts", alert_data)
 
+    async def cleanup_stale_connections(self) -> int:
+        """
+        RAM optimizasyonu: Ghost/stale connection'ları temizle.
+        Periyodik olarak çağrılmalıdır.
+        
+        Returns:
+            Temizlenen bağlantı sayısı
+        """
+        stale = []
+        for ws, info in self._active_connections.items():
+            try:
+                if ws.client_state != WebSocketState.CONNECTED:
+                    stale.append(ws)
+            except Exception:
+                stale.append(ws)
+        
+        for ws in stale:
+            await self.disconnect(ws)
+        
+        if stale:
+            logger.info(f"Cleaned up {len(stale)} stale WebSocket connections")
+        
+        return len(stale)
+
     def get_connection_count(self) -> int:
         """Get the number of active connections."""
         return len(self._active_connections)

@@ -24,13 +24,21 @@ class MQTTLogEntry(BaseModel):
     data: dict | None = None
 
 
-# In-memory log storage (last 1000 entries)
+# In-memory log storage (last 200 entries - reduced from 1000 for RAM optimization)
 _mqtt_logs: List[MQTTLogEntry] = []
-_max_logs = 1000
+_max_logs = 200
 
 
 def add_mqtt_log(level: str, message: str, device_code: str = None, modem_id: str = None, data: dict = None):
-    """Add a log entry to the in-memory storage."""
+    """Add a log entry to the in-memory storage.
+    
+    Only stores warning and error level logs to reduce RAM usage.
+    Info/debug level calls are silently skipped.
+    """
+    # RAM optimizasyonu: sadece warning ve error loglarını tut
+    if level not in ("warning", "error"):
+        return
+    
     entry = MQTTLogEntry(
         timestamp=datetime.utcnow().isoformat(),
         level=level,
