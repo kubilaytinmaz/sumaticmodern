@@ -1230,14 +1230,15 @@ async def get_monthly_stats(
     """
     try:
         # Get current local time for offline calculations
-        now_local = datetime.now()
+        from datetime import timezone
+        now_local = datetime.now(timezone.utc)
         
-        # Calculate month start and end
-        month_start = datetime(year, month, 1)
+        # Calculate month start and end (UTC timezone)
+        month_start = datetime(year, month, 1, tzinfo=timezone.utc)
         if month == 12:
-            month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            month_end = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         else:
-            month_end = datetime(year, month + 1, 1) - timedelta(seconds=1)
+            month_end = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         
         # Turkish month name
         month_names_tr = [
@@ -1463,11 +1464,12 @@ async def get_monthly_stats(
         # Calculate per-device offline hours from device_readings.status
         # Her cihaz için o ay içinde OFFLINE sürelerini hesapla
         # Timestamp farklarını kullanarak gerçek offline süresini hesapla
-        month_start_dt = datetime(year, month, 1)
+        from datetime import timezone
+        month_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
         if month == 12:
-            month_end_dt = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            month_end_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         else:
-            month_end_dt = datetime(year, month + 1, 1) - timedelta(seconds=1)
+            month_end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
         
         device_offline_hours_list = []
         for device in devices:
