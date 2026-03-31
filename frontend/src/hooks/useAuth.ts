@@ -53,8 +53,20 @@ export const useAuth = create<AuthState>()(
           // Store tokens
           AuthStorage.setTokens(tokens);
           
-          // Get user info
-          const user = await api.get<User>(endpoints.me);
+          // Get user info - pass token directly to avoid timing issues
+          const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${endpoints.me}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokens.access_token}`,
+            },
+          });
+
+          if (!userResponse.ok) {
+            throw new Error('Kullanıcı bilgileri alınamadı');
+          }
+
+          const user = await userResponse.json();
           AuthStorage.setUser(user);
           
           set({

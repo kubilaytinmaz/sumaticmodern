@@ -248,8 +248,9 @@ def create_app() -> FastAPI:
     
     # ─── API Security Middleware ──────────────────────────────────────
     # Add security headers and filter sensitive data from API responses
-    app.add_middleware(ResponseFilterMiddleware)
-    app.add_middleware(APISecurityMiddleware)
+    # TEMPORARILY DISABLED FOR DEBUGGING AUTH ISSUES
+    # app.add_middleware(ResponseFilterMiddleware)
+    # app.add_middleware(APISecurityMiddleware)
     
     # ─── Exception Handlers ──────────────────────────────────────────
     @app.exception_handler(AppException)

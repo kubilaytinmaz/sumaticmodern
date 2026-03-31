@@ -19,6 +19,7 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_refresh_token,
+    decode_token,
 )
 from app.database import get_db
 from app.models.user import User
@@ -232,18 +233,22 @@ async def logout(
     """
     token = credentials.credentials
     
-    # Blacklist the token (use JTI if available, otherwise use token hash)
-    # For simplicity, we'll blacklist by token hash
-    import hashlib
-    jti = hashlib.sha256(token.encode()).hexdigest()
+    # Decode token to extract the actual jti claim
+    try:
+        payload = decode_token(token)
+        jti = payload.get("jti")
+    except Exception:
+        jti = None
     
-    # Blacklist for the duration of the access token
-    await blacklist_token(
-        jti,
-        expire_seconds=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    
-    logger.info(f"User logged out: {current_user.username}")
+    if jti:
+        # Blacklist using the real jti from the token payload
+        await blacklist_token(
+            jti,
+            expire_seconds=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        logger.info(f"User logged out: {current_user.username}, JTI: {jti}")
+    else:
+        logger.warning(f"Logout for {current_user.username}: token has no jti, skipping blacklist")
     
     return {"message": "Successfully logged out"}
 

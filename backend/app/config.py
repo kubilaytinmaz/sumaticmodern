@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     # JWT Auth
     JWT_SECRET_KEY: str = "change-this-to-a-secure-random-key-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours (increased for localhost dev)
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Security

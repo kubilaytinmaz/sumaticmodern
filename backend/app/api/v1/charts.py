@@ -99,9 +99,17 @@ async def _get_latest_device_value(db: AsyncSession, device_id: int) -> Dict[str
     
     # Timestamp: en son okunan değerin timestamp'ini kullan
     # Her iki okuma varsa daha yeni olanı seç
+    # SQLite returns naive datetimes, ensure they're timezone-aware for comparison
     timestamp = None
     if reading_19l and reading_5l:
-        timestamp = max(reading_19l.timestamp, reading_5l.timestamp)
+        ts_19l = reading_19l.timestamp
+        ts_5l = reading_5l.timestamp
+        # Make both timezone-aware for comparison
+        if ts_19l and ts_19l.tzinfo is None:
+            ts_19l = ts_19l.replace(tzinfo=timezone.utc)
+        if ts_5l and ts_5l.tzinfo is None:
+            ts_5l = ts_5l.replace(tzinfo=timezone.utc)
+        timestamp = max(ts_19l, ts_5l)
     elif reading_19l:
         timestamp = reading_19l.timestamp
     elif reading_5l:
@@ -1232,12 +1240,13 @@ async def get_monthly_stats(
         # Get current UTC time for offline calculations
         now_local = datetime.now(timezone.utc)
         
-        # Calculate month start and end (timezone-aware UTC - matches PostgreSQL TIMESTAMPTZ)
-        month_start = datetime(year, month, 1, tzinfo=timezone.utc)
+        # Calculate month start and end as NAIVE datetimes
+        # SQLite stores naive datetimes, so we use naive to avoid comparison issues
+        month_start = datetime(year, month, 1)
         if month == 12:
-            month_end = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
         else:
-            month_end = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end = datetime(year, month + 1, 1) - timedelta(seconds=1)
         
         # Turkish month name
         month_names_tr = [
@@ -1467,11 +1476,14 @@ async def get_monthly_stats(
         # Calculate per-device offline hours from device_readings.status
         # Her cihaz için o ay içinde OFFLINE sürelerini hesapla
         # Timestamp farklarını kullanarak gerçek offline süresini hesapla
-        month_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
+        # Use NAIVE datetimes - SQLite stores naive datetimes, so we must
+        # use naive datetimes for comparisons to avoid "can't subtract offset-naive
+        # and offset-aware datetimes" errors
+        month_start_dt = datetime(year, month, 1)
         if month == 12:
-            month_end_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end_dt = datetime(year + 1, 1, 1) - timedelta(seconds=1)
         else:
-            month_end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+            month_end_dt = datetime(year, month + 1, 1) - timedelta(seconds=1)
         
         device_offline_hours_list = []
         for device in devices:
@@ -1496,11 +1508,17 @@ async def get_monthly_stats(
                 timestamp, status = reading
                 status_lower = (status or '').lower()
                 
+                # CRITICAL: SQLite stores naive datetimes but SQLAlchemy model has DateTime(timezone=True)
+                # This causes SQLAlchemy to return timezone-aware datetimes even from SQLite
+                # We MUST strip timezone info BEFORE any datetime operations
+                if timestamp and timestamp.tzinfo is not None:
+                    timestamp = timestamp.replace(tzinfo=None)
+                
                 if status_lower == 'offline' and offline_start is None:
-                    # Offline başlangıcı
+                    # Offline başlangıcı - timestamp is now guaranteed to be naive
                     offline_start = timestamp
                 elif status_lower == 'online' and offline_start is not None:
-                    # Offline bitişi, süreyi ekle
+                    # Offline bitişi, süreyi ekle - both timestamps are naive
                     duration = (timestamp - offline_start).total_seconds() / 3600.0
                     offline_hours += duration
                     offline_start = None
@@ -1508,9 +1526,16 @@ async def get_monthly_stats(
                     # Hala offline, süre devam ediyor (hiçbir şey yapma)
                     pass
             
-            # Eğer ay sonunda hala offline ise, ay sonuna kadar olan süreyi ekle
+            # If still offline at end of month, add duration to month end
             if offline_start is not None:
-                duration = (month_end_dt - offline_start).total_seconds() / 3600.0
+                # Ensure both datetimes are naive before subtraction
+                if offline_start.tzinfo is not None:
+                    offline_start = offline_start.replace(tzinfo=None)
+                if month_end_dt.tzinfo is not None:
+                    month_end_dt_safe = month_end_dt.replace(tzinfo=None)
+                else:
+                    month_end_dt_safe = month_end_dt
+                duration = (month_end_dt_safe - offline_start).total_seconds() / 3600.0
                 offline_hours += max(0, duration)
             
             device_name = device.name or device.device_code or f"Cihaz {device.id}"
@@ -1541,6 +1566,9 @@ async def get_monthly_stats(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"MONTHLY STATS ERROR TRACEBACK:\n{tb}")
         raise HTTPException(status_code=500, detail=f"Error fetching monthly stats: {str(e)}")
 
 

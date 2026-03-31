@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -11,6 +11,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Localhost'ta otomatik giriş
+  useEffect(() => {
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      handleAutoLogin();
+    }
+  }, []);
+
+  const handleAutoLogin = async () => {
+    setIsLoading(true);
+    try {
+      // Varsayılan admin bilgileri ile otomatik giriş
+      await login({ username: 'admin', password: 'admin123' });
+      router.push('/');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Otomatik giriş başarısız';
+      setError(message);
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

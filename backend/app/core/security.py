@@ -2,7 +2,7 @@
 Sumatic Modern IoT - Security Utilities
 JWT token creation/validation, password hashing with bcrypt directly.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
@@ -30,12 +30,16 @@ def create_access_token(
     expires_delta: Optional[float] = None,
 ) -> str:
     """Create a JWT access token."""
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + timedelta(seconds=expires_delta)
+        expire = now + timedelta(seconds=expires_delta)
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = now + timedelta(
             minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
+    
+    # Generate unique JWT ID for token blacklisting
+    jti = f"{subject}_{int(now.timestamp())}"
     
     to_encode = {
         "sub": subject,
@@ -43,6 +47,7 @@ def create_access_token(
         "role": role,
         "exp": expire.timestamp(),
         "type": "access",
+        "jti": jti,
     }
     
     encoded_jwt = jwt.encode(
@@ -60,7 +65,11 @@ def create_refresh_token(
     role: str,
 ) -> str:
     """Create a JWT refresh token."""
-    expire = datetime.utcnow() + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    # Generate jti for refresh token consistency
+    jti = f"{subject}_refresh_{int(now.timestamp())}"
     
     to_encode = {
         "sub": subject,
@@ -68,6 +77,7 @@ def create_refresh_token(
         "role": role,
         "exp": expire.timestamp(),
         "type": "refresh",
+        "jti": jti,
     }
     
     encoded_jwt = jwt.encode(

@@ -4,7 +4,7 @@ FastAPI dependencies for authentication, authorization, and pagination.
 """
 from typing import Optional
 
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -18,22 +18,22 @@ from app.redis_client import is_token_blacklisted
 
 logger = get_logger(__name__)
 
-# HTTP Bearer scheme for JWT
-security = HTTPBearer()
+# Don't use HTTPBearer - manually extract Authorization header
+# security = HTTPBearer(auto_error=False)
 
 
 # ─── Authentication Dependencies ──────────────────────────────────────
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     Validate JWT token and return the current authenticated user.
     
     Args:
-        credentials: HTTP Bearer credentials
+        request: FastAPI Request object
         db: Database session
         
     Returns:
@@ -42,21 +42,34 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
-    token = credentials.credentials
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    # Manually extract Authorization header
+    auth_header = request.headers.get("Authorization")
+    
+    if auth_header is None:
+        logger.warning("[AUTH] No Authorization header provided")
+        raise credentials_exception
+    
+    if not auth_header.startswith("Bearer "):
+        logger.warning(f"[AUTH] Invalid Authorization header format: {auth_header[:20]}...")
+        raise credentials_exception
+    
+    token = auth_header[7:].strip()  # Remove "Bearer " prefix
+    
     # Debug logging for token validation
-    logger.debug(f"Token validation attempt. Token length: {len(token)}, Token prefix: {token[:20] if len(token) > 20 else token}...")
+    logger.info(f"[AUTH] Token validation attempt. Token length: {len(token)}, Token prefix: {token[:20] if len(token) > 20 else token}...")
     
     try:
         payload = decode_token(token)
-        logger.debug(f"Token decoded successfully. Payload: {payload}")
+        logger.info(f"[AUTH] Token decoded successfully. Payload: {payload}")
     except JWTError as e:
-        logger.warning(f"Token decode failed: {e}")
+        logger.warning(f"[AUTH] Token decode failed: {e}")
         raise credentials_exception
     
     # Check token type
@@ -66,9 +79,15 @@ async def get_current_user(
     
     # Check token blacklist (for logged out tokens)
     jti = payload.get("jti")
-    if jti and await is_token_blacklisted(jti):
-        logger.warning(f"Token is blacklisted. JTI: {jti}")
-        raise credentials_exception
+    # Only check blacklist if jti exists (tokens without jti skip this check)
+    if jti:
+        try:
+            if await is_token_blacklisted(jti):
+                logger.warning(f"Token is blacklisted. JTI: {jti}")
+                raise credentials_exception
+        except Exception as e:
+            # Redis unavailable - log warning but don't block auth
+            logger.warning(f"Redis unavailable for blacklist check: {e}")
     
     # Get user from database
     user_id = payload.get("sub")

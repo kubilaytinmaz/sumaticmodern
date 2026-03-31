@@ -38,7 +38,7 @@ export function ChartMetricsHeader({
     return (
       <div className="mb-4 grid grid-cols-3 gap-3">
         {/* Toplam Ciro */}
-        <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 relative">
+        <div className="p-4 rounded-lg bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 relative">
           {showPeriodToggle && onPeriodOffsetChange && (
             <div className="absolute top-2 right-2 flex items-center gap-1">
               <Button
@@ -60,7 +60,7 @@ export function ChartMetricsHeader({
             </div>
           )}
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">
+            <div className="text-2xl font-bold text-orange-500">
               {formatMoney(metrics.totalPeriodRevenue ?? metrics.totalRevenue ?? 0)}
             </div>
             <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">

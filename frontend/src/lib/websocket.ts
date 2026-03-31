@@ -1,5 +1,8 @@
 import { REFRESH_INTERVALS, WS_STATE } from './constants';
 
+// In production: NEXT_PUBLIC_WS_URL should be set (e.g., wss://sumatic.com)
+// In development: fallback to ws://localhost:8000
+// The key fix: do NOT include port from window.location in production
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
 
 /**
@@ -54,10 +57,10 @@ class WebSocketClient {
     }
 
     try {
-      // Build WebSocket URL with token
+      // Build WebSocket URL with token (must include /api/v1 prefix)
       const wsUrl = this.token
-        ? `${this.url}/ws?token=${this.token}`
-        : `${this.url}/ws`;
+        ? `${this.url}/api/v1/ws?token=${this.token}`
+        : `${this.url}/api/v1/ws`;
 
       this.ws = new WebSocket(wsUrl);
 

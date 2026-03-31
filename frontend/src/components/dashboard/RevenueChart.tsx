@@ -112,7 +112,7 @@ function renderBarChart(data: RevenueData[], height: number) {
       <Bar
         dataKey="5L"
         stackId="a"
-        fill={CHART_COLORS.secondary}
+        fill={CHART_COLORS.success}
         radius={[4, 4, 0, 0]}
         maxBarSize={60}
         opacity={0.9}
@@ -145,8 +145,8 @@ function renderAreaChart(data: RevenueData[], height: number) {
           <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0.02} />
         </linearGradient>
         <linearGradient id="gradient5L" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor={CHART_COLORS.secondary} stopOpacity={0.5} />
-          <stop offset="95%" stopColor={CHART_COLORS.secondary} stopOpacity={0.03} />
+          <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.5} />
+          <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0.03} />
         </linearGradient>
       </defs>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -188,7 +188,7 @@ function renderAreaChart(data: RevenueData[], height: number) {
         type="monotone"
         dataKey="5L"
         stackId="1"
-        stroke={CHART_COLORS.secondary}
+        stroke={CHART_COLORS.success}
         strokeWidth={2}
         fill="url(#gradient5L)"
         dot={false}
@@ -253,9 +253,9 @@ function renderLineChart(data: RevenueData[], height: number) {
       <Line
         type="monotone"
         dataKey="5L"
-        stroke={CHART_COLORS.secondary}
+        stroke={CHART_COLORS.success}
         strokeWidth={2.5}
-        dot={{ r: 3, fill: CHART_COLORS.secondary, strokeWidth: 0 }}
+        dot={{ r: 3, fill: CHART_COLORS.success, strokeWidth: 0 }}
         activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
         strokeDasharray="0"
       />
@@ -299,7 +299,6 @@ function renderComposedChart(data: RevenueData[], height: number) {
         fill={CHART_COLORS.primary}
         radius={[0, 0, 0, 0]}
         maxBarSize={55}
-        opacity={0.55}
       >
         <LabelList
           dataKey="19L"
@@ -311,10 +310,9 @@ function renderComposedChart(data: RevenueData[], height: number) {
       <Bar
         dataKey="5L"
         stackId="a"
-        fill={CHART_COLORS.secondary}
+        fill={CHART_COLORS.success}
         radius={[3, 3, 0, 0]}
         maxBarSize={55}
-        opacity={0.6}
       >
         <LabelList
           dataKey="5L"
@@ -333,9 +331,9 @@ function renderComposedChart(data: RevenueData[], height: number) {
         type="monotone"
         dataKey="total"
         name="Toplam (trend)"
-        stroke="#3b82f6"
+        stroke="#f97316"
         strokeWidth={2.5}
-        dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
+        dot={{ r: 3, fill: '#f97316', strokeWidth: 0 }}
         activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
       />
     </ComposedChart>
