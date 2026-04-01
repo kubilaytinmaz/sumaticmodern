@@ -975,9 +975,9 @@ class TuyaService:
             from datetime import datetime, timedelta
             
             now = datetime.now()
-            # Use 2 minutes for OFF, 3 minutes for ON (timer needs enough lead time)
-            turn_off_time = now + timedelta(minutes=2)
-            turn_on_time = now + timedelta(minutes=3)
+            # Use 3 minutes for OFF, 4 minutes for ON (timer needs enough lead time)
+            turn_off_time = now + timedelta(minutes=3)
+            turn_on_time = now + timedelta(minutes=4)
             
             # IMPORTANT: Timer API always expects "power" code regardless of device's actual function code
             # This was discovered through testing - Timer API rejects "switch_1" and "switch_led"
@@ -1005,6 +1005,11 @@ class TuyaService:
             timer_id_off = off_result.get("result", {}).get("timer_id")
             timer_ids.append(timer_id_off)
             logger.info(f"Created OFF timer {timer_id_off} for {device.name} at {turn_off_time.strftime('%H:%M')}")
+            
+            # Wait 20 seconds before creating ON timer to avoid overwhelming Tuya Cloud API
+            import asyncio
+            await asyncio.sleep(20)
+            logger.debug(f"Waited 20 seconds after OFF timer creation, now creating ON timer")
             
             # Create ON timer
             on_payload = {
@@ -1080,7 +1085,7 @@ class TuyaService:
             "power_state": False,
             "strategy": "timer",
             "message": (
-                f"Cihaz 2 dakika sonra kapanacak, 3 dakika sonra açılacak. "
+                f"Cihaz 3 dakika sonra kapanacak, 4 dakika sonra açılacak. "
                 f"Timer'lar cihazın hafızasına kaydedildi, internet olmasa bile çalışacak."
             ),
             "delay_seconds": delay_seconds,
