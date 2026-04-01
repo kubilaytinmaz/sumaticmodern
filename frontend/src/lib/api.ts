@@ -47,6 +47,27 @@ export const endpoints = {
 
   // MQTT Logs
   mqttLogs: '/api/v1/mqtt-logs',
+
+  // Tuya Smart Plugs
+  tuyaDevices: '/api/v1/tuya-devices',
+  tuyaDevice: (id: number) => `/api/v1/tuya-devices/${id}`,
+  tuyaDeviceDetails: (id: number) => `/api/v1/tuya-devices/${id}/details`,
+  tuyaDeviceControlHistory: (id: number) => `/api/v1/tuya-devices/${id}/control-history`,
+  tuyaDeviceControl: (id: number) => `/api/v1/tuya-devices/${id}/control`,
+  tuyaDeviceStatus: (id: number) => `/api/v1/tuya-devices/${id}/status`,
+  tuyaDeviceToggle: (id: number) => `/api/v1/tuya-devices/${id}/toggle`,
+  tuyaDeviceRestart: (id: number) => `/api/v1/tuya-devices/${id}/restart`,
+  tuyaDiscover: '/api/v1/tuya-devices/discover',
+  tuyaAllStatus: '/api/v1/tuya-devices/status',
+  tuyaConfig: '/api/v1/tuya-devices/config',
+
+  // Monthly Revenue
+  monthlyRevenueCurrent: '/api/v1/monthly-revenue/current',
+  monthlyRevenueActive: '/api/v1/monthly-revenue/active',
+  monthlyRevenueSummary: (year: number, month: number) => `/api/v1/monthly-revenue/summary?year=${year}&month=${month}`,
+  monthlyRevenueDeviceCycles: (deviceId: number) => `/api/v1/monthly-revenue/device/${deviceId}/cycles`,
+  monthlyRevenueHistory: '/api/v1/monthly-revenue/history',
+  monthlyRevenueOverview: '/api/v1/monthly-revenue/stats/overview',
 };
 
 /**

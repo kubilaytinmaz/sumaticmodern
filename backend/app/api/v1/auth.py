@@ -58,6 +58,10 @@ async def check_login_attempts(identifier: str) -> tuple[bool, int]:
     """
     try:
         redis = await get_redis()
+        if redis is None:
+            # Redis unavailable - skip rate limiting
+            return False, MAX_LOGIN_ATTEMPTS
+        
         key = f"login_attempts:{identifier}"
         
         # Get current attempts
@@ -89,6 +93,10 @@ async def record_login_attempt(identifier: str, success: bool = False):
     """
     try:
         redis = await get_redis()
+        if redis is None:
+            # Redis unavailable - skip recording
+            return
+        
         key = f"login_attempts:{identifier}"
         
         if success:

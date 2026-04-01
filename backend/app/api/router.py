@@ -14,6 +14,8 @@ from app.api.v1.charts import router as charts_router
 from app.api.v1.mqtt_logs import router as mqtt_logs_router
 from app.api.v1.monitoring import router as monitoring_router
 from app.api.v1.live_data import router as live_data_router
+from app.api.v1.tuya_devices import router as tuya_devices_router
+from app.api.v1.monthly_revenue import router as monthly_revenue_router
 
 
 def create_api_router() -> APIRouter:
@@ -36,6 +38,8 @@ def create_api_router() -> APIRouter:
     api_router.include_router(mqtt_logs_router)
     api_router.include_router(monitoring_router)
     api_router.include_router(live_data_router)
+    api_router.include_router(tuya_devices_router)
+    api_router.include_router(monthly_revenue_router, prefix="/monthly-revenue", tags=["monthly-revenue"])
     
     return api_router
   

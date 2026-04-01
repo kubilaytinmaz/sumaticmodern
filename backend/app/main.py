@@ -153,6 +153,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[ERROR] MQTT consumer start error: {e}")
     
+    # Initialize Tuya Cloud service
+    if settings.TUYA_ACCESS_ID and settings.TUYA_ACCESS_SECRET:
+        try:
+            from app.services.tuya_service import get_tuya_service
+            tuya_service = get_tuya_service()
+            await tuya_service.initialize()
+            await tuya_service.start_polling()
+            logger.info("[OK] Tuya Cloud service initialized and polling started")
+        except Exception as e:
+            logger.warning(f"[WARN] Tuya Cloud service initialization failed: {e}")
+    else:
+        logger.info("[INFO] Tuya Cloud service disabled (no credentials)")
+    
     logger.info(f"[OK] {settings.APP_NAME} started successfully")
     
     yield
@@ -178,6 +191,15 @@ async def lifespan(app: FastAPI):
         logger.info("[OK] MQTT consumer stopped")
     except Exception as e:
         logger.error(f"MQTT consumer stop error: {e}")
+    
+    # Stop Tuya Cloud service
+    try:
+        from app.services.tuya_service import get_tuya_service
+        tuya_service = get_tuya_service()
+        await tuya_service.stop_polling()
+        logger.info("[OK] Tuya Cloud service stopped")
+    except Exception as e:
+        logger.error(f"Tuya service stop error: {e}")
     
     # Close Redis
     from app.redis_client import close_redis
@@ -347,6 +369,15 @@ def create_app() -> FastAPI:
                 health["status"] = "degraded"
         except Exception as e:
             health["mqtt"] = f"error: {str(e)}"
+        
+        # Check Tuya Cloud
+        try:
+            from app.services.tuya_service import get_tuya_service
+            tuya_service = get_tuya_service()
+            tuya_status = tuya_service.get_status()
+            health["tuya"] = tuya_status
+        except Exception as e:
+            health["tuya"] = f"error: {str(e)}"
         
         return health
     

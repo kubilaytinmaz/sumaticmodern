@@ -7,30 +7,55 @@ from typing import Any, Optional
 import redis.asyncio as aioredis
 
 from app.config import get_settings
+from app.core.logging import get_logger
 
+logger = get_logger(__name__)
 settings = get_settings()
 
 # Redis connection pool
 redis_pool: Optional[aioredis.ConnectionPool] = None
 redis_client: Optional[aioredis.Redis] = None
+_redis_available: Optional[bool] = None  # None = not checked yet
 
 
-async def get_redis() -> aioredis.Redis:
+async def get_redis() -> Optional[aioredis.Redis]:
     """
     Get or create the Redis client instance.
     
     Returns:
-        Async Redis client
+        Async Redis client, or None if Redis is unavailable
     """
-    global redis_client, redis_pool
+    global redis_client, redis_pool, _redis_available
+    
+    # If we already know Redis is unavailable, return None immediately
+    if _redis_available is False:
+        return None
     
     if redis_client is None:
-        redis_pool = aioredis.ConnectionPool.from_url(
-            settings.REDIS_URL,
-            decode_responses=True,
-            max_connections=20,
-        )
-        redis_client = aioredis.Redis(connection_pool=redis_pool)
+        try:
+            redis_pool = aioredis.ConnectionPool.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                max_connections=20,
+                socket_connect_timeout=2,  # 2 second connect timeout
+                socket_timeout=2,           # 2 second operation timeout
+            )
+            redis_client = aioredis.Redis(connection_pool=redis_pool)
+            # Test the connection
+            await redis_client.ping()
+            _redis_available = True
+            logger.info("Redis connection established successfully")
+        except Exception as e:
+            logger.warning(f"Redis unavailable: {e}. Running without Redis cache.")
+            _redis_available = False
+            redis_client = None
+            if redis_pool is not None:
+                try:
+                    await redis_pool.disconnect()
+                except Exception:
+                    pass
+                redis_pool = None
+            return None
     
     return redis_client
 
@@ -63,6 +88,8 @@ async def cache_get(key: str) -> Optional[str]:
     """
     try:
         client = await get_redis()
+        if client is None:
+            return None
         return await client.get(key)
     except Exception:
         # Redis unavailable - return None gracefully
@@ -87,6 +114,8 @@ async def cache_set(
     """
     try:
         client = await get_redis()
+        if client is None:
+            return False
         return await client.set(key, value, ex=expire_seconds)
     except Exception:
         # Redis unavailable - return False gracefully
@@ -105,6 +134,8 @@ async def cache_delete(key: str) -> int:
     """
     try:
         client = await get_redis()
+        if client is None:
+            return 0
         return await client.delete(key)
     except Exception:
         # Redis unavailable - return 0 gracefully
@@ -123,6 +154,8 @@ async def cache_exists(key: str) -> bool:
     """
     try:
         client = await get_redis()
+        if client is None:
+            return False
         return bool(await client.exists(key))
     except Exception:
         # Redis unavailable - return False gracefully
@@ -183,6 +216,8 @@ async def cache_delete_pattern(pattern: str) -> int:
     """
     try:
         client = await get_redis()
+        if client is None:
+            return 0
         deleted = 0
         async for key in client.scan_iter(match=pattern):
             deleted += await client.delete(key)
@@ -218,10 +253,14 @@ async def is_token_blacklisted(jti: str) -> bool:
         jti: JWT token ID
         
     Returns:
-        True if token is blacklisted
+        True if token is blacklisted, False if not or Redis unavailable
     """
-    key = f"token_blacklist:{jti}"
-    return await cache_exists(key)
+    try:
+        key = f"token_blacklist:{jti}"
+        return await cache_exists(key)
+    except Exception:
+        # Redis unavailable - treat as not blacklisted
+        return False
 
 
 # ─── Device Real-time Cache ───────────────────────────────────────────

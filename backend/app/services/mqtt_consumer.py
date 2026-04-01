@@ -23,6 +23,7 @@ from app.models.register_definition import RegisterDefinition
 from app.services.modbus_parser import ModbusParser, get_register_map
 from app.services.spike_filter import get_spike_filter
 from app.services.websocket_manager import get_websocket_manager
+from app.services.monthly_revenue_service import MonthlyRevenueService
 from app.core.logging import get_logger
 from app.api.v1.mqtt_logs import add_mqtt_log
 from app.services.insertion_log import add_insertion_log
@@ -550,6 +551,45 @@ class MQTTConsumer:
         if counter_19l is None and counter_5l is None:
             logger.debug(f"{device_code}: Skipping save - no counter data")
             return
+        
+        # Sayaç sıfırlama kontrolü - her iki sayaç da varsa kontrol et
+        if counter_19l is not None and counter_5l is not None:
+            try:
+                async with async_session_maker() as session:
+                    reset_detected = await MonthlyRevenueService.detect_counter_reset(
+                        session,
+                        device_id,
+                        int(counter_19l),
+                        int(counter_5l),
+                        datetime.now(IST_TIMEZONE)
+                    )
+                    
+                    if reset_detected:
+                        logger.info(f"{device_code}: Counter reset detected! Month closed.")
+                        add_mqtt_log(
+                            "info",
+                            f"Aylık döngü kapatıldı: {device_code}",
+                            device_code=device_code,
+                            data={
+                                "counter_19l": int(counter_19l),
+                                "counter_5l": int(counter_5l),
+                            }
+                        )
+                        
+                        # WebSocket bildirimi gönder
+                        try:
+                            ws_manager = get_websocket_manager()
+                            await ws_manager.broadcast_alert(
+                                alert_type="month_closed",
+                                title=f"Ay Kapatıldı: {device_code}",
+                                message=f"{device_code} cihazı için aylık döngü kapatıldı ve ciroyu kaydedildi.",
+                                device_id=device_id,
+                                severity="info",
+                            )
+                        except Exception as ws_err:
+                            logger.error(f"Error broadcasting month closed alert: {ws_err}")
+            except Exception as e:
+                logger.error(f"Error in counter reset detection for {device_code}: {e}")
         
         try:
             async with async_session_maker() as session:

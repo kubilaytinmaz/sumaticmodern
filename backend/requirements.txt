@@ -15,6 +15,9 @@ redis>=5.2.0
 # MQTT
 paho-mqtt>=2.1.0
 
+# Tuya Cloud
+tinytuya>=1.13.0
+
 # SSH Tunnel
 paramiko>=3.5.0
 sshtunnel>=0.4.0

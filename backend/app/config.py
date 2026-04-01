@@ -78,6 +78,12 @@ class Settings(BaseSettings):
     # Timezone
     TIMEZONE: str = "Europe/Istanbul"
 
+    # Tuya Cloud Configuration
+    TUYA_ACCESS_ID: Optional[str] = None
+    TUYA_ACCESS_SECRET: Optional[str] = None
+    TUYA_API_REGION: str = "eu"  # us, eu, cn, in
+    TUYA_POLL_INTERVAL_SECONDS: int = 600  # Device status polling interval (10 minutes)
+
     # Device monitoring
     DEVICE_OFFLINE_THRESHOLD_SECONDS: int = 600  # 10 minutes
     DEVICE_RETRY_INTERVAL_SECONDS: int = 60
