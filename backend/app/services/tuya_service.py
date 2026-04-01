@@ -973,8 +973,12 @@ class TuyaService:
         
         try:
             from datetime import datetime, timedelta
+            import pytz
             
-            now = datetime.now()
+            # IMPORTANT: Timer must use device's local timezone (Europe/Istanbul = UTC+3)
+            # Deployed server runs in UTC, so we must convert to device timezone
+            turkey_tz = pytz.timezone('Europe/Istanbul')
+            now = datetime.now(turkey_tz)
             # Use 3 minutes for OFF, 4 minutes for ON (timer needs enough lead time)
             turn_off_time = now + timedelta(minutes=3)
             turn_on_time = now + timedelta(minutes=4)

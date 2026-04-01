@@ -33,6 +33,7 @@ export default function TuyaDevicesPage() {
   const [isDiscoverDialogOpen, setIsDiscoverDialogOpen] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredDevices, setDiscoveredDevices] = useState<TuyaDiscoveredDevice[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Config Dialog
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
@@ -212,6 +213,21 @@ export default function TuyaDevicesPage() {
     }
   };
 
+  // Sync devices from cloud
+  const syncDevices = async () => {
+    setIsSyncing(true);
+    try {
+      await api.post('/tuya-devices/sync');
+      await fetchDevices();
+      setError(null);
+    } catch (err) {
+      console.error('Failed to sync devices:', err);
+      setError('Cihazlar senkronize edilirken bir hata oluştu');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Refresh device status
   const refreshStatus = async (deviceId: number) => {
     try {
@@ -380,6 +396,18 @@ export default function TuyaDevicesPage() {
               <Cloud className="mr-2 h-4 w-4" />
             )}
             Cloud&apos;dan Getir
+          </Button>
+          <Button
+            variant="outline"
+            onClick={syncDevices}
+            disabled={isSyncing || !tuyaConfig?.is_configured}
+          >
+            {isSyncing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Senkronize Et
           </Button>
           <Button
             variant="outline"

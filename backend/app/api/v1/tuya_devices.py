@@ -82,6 +82,18 @@ async def get_tuya_service_status():
     return tuya_service.get_status()
 
 
+@router.post("/sync")
+async def sync_tuya_devices(db: AsyncSession = Depends(get_db)):
+    """Manually sync Tuya devices from cloud."""
+    tuya_service = get_tuya_service()
+    try:
+        # Force sync from cloud
+        await tuya_service._poll_all_devices(db)
+        return {"success": True, "message": "Tuya devices synced successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("", response_model=TuyaDeviceListResponse)
 async def list_tuya_devices(
     db: AsyncSession = Depends(get_db),

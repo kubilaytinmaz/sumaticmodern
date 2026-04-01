@@ -88,6 +88,19 @@ API_V1_PREFIX=/api/v1
 TIMEZONE=Europe/Istanbul
 ```
 
+### Tuya Cloud API Variables
+
+```
+TUYA_ACCESS_ID=your_tuya_access_id_here
+TUYA_ACCESS_SECRET=your_tuya_access_secret_here
+TUYA_API_REGION=eu
+```
+
+**Not**: Tuya Cloud API kimlik bilgilerinizi [Tuya IoT Platform](https://iot.tuya.com/) üzerinden alabilirsiniz:
+- `TUYA_ACCESS_ID`: Tuya Cloud Project Access ID / Client ID
+- `TUYA_ACCESS_SECRET`: Tuya Cloud Project Access Secret / Client Secret
+- `TUYA_API_REGION`: Bölge kodu - `eu` (Avrupa), `us` (Amerika), `cn` (Çin), `in` (Hindistan)
+
 ### Device Monitoring Variables
 
 ```
@@ -211,6 +224,16 @@ API_V1_PREFIX=/api/v1
 TIMEZONE=Europe/Istanbul
 ```
 
+### Tuya Cloud API Variables
+
+```
+TUYA_ACCESS_ID=your_tuya_access_id_here
+TUYA_ACCESS_SECRET=your_tuya_access_secret_here
+TUYA_API_REGION=eu
+```
+
+**Not**: Production ile aynı Tuya Cloud API kimlik bilgilerini kullanın.
+
 ### Device Monitoring Variables
 
 ```
@@ -283,6 +306,7 @@ Environment Variables eklerken:
 - [ ] Preview environment variables eklendi
 - [ ] SSH_PRIVATE_KEY secret eklendi (Production)
 - [ ] SSH_PRIVATE_KEY secret eklendi (Preview)
+- [ ] Tuya Cloud API credentials eklendi (TUYA_ACCESS_ID, TUYA_ACCESS_SECRET, TUYA_API_REGION)
 - [ ] IP adresleri doğru şekilde değiştirildi
 - [ ] CORS_ORIGINS doğru yapılandırıldı
 - [ ] NEXT_PUBLIC_API_URL doğru yapılandırıldı
