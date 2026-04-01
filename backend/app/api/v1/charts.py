@@ -51,16 +51,16 @@ def _get_device_online_status(last_seen_at: Optional[datetime]) -> bool:
 
 async def _get_latest_device_value(db: AsyncSession, device_id: int) -> Dict[str, Any]:
     """
-    Bir cihaz için son pozitif (>0) counter değerlerini al.
+    Bir cihaz için en son okunan counter değerlerini al.
     
     Mantık:
-    1. Her sayaç için ayrı ayrı son pozitif (>0) değeri bul
-    2. counter_19l için son pozitif değeri al
-    3. counter_5l için son pozitif değeri al
+    1. En son okumayı al (timestamp'e göre)
+    2. 0 değerleri de geçerlidir (sayaç sıfırlaması sonrası)
+    3. Eğer son okuma NULL ise, her sayaç için ayrı ayrı son geçerli değeri bul
     4. Hiç veri yoksa {counter_19l: 0, counter_5l: 0} döndür
     
-    Not: 0 değeri NULL gibi davranır - cihaz kapalıyken gelen 0 değerlerini
-    geçip son gerçek sayaç değerini bulur.
+    Not: Sayaç sıfırlaması sonrası 0 değerleri geçerli sayılır.
+    Sadece NULL değerler için fallback yapılır.
     
     Args:
         db: AsyncSession
@@ -73,52 +73,59 @@ async def _get_latest_device_value(db: AsyncSession, device_id: int) -> Dict[str
             "timestamp": datetime or None
         }
     """
-    # counter_19l için son pozitif (>0) değeri al
-    result_19l = await db.execute(
+    # En son okumayı al (0 değerleri dahil, sadece NULL değil)
+    result = await db.execute(
         select(DeviceReading)
         .where(DeviceReading.device_id == device_id)
-        .where(DeviceReading.counter_19l > 0)
+        .where(
+            (DeviceReading.counter_19l.isnot(None)) |
+            (DeviceReading.counter_5l.isnot(None))
+        )
         .order_by(DeviceReading.timestamp.desc())
         .limit(1)
     )
-    reading_19l = result_19l.scalar_one_or_none()
+    latest_reading = result.scalar_one_or_none()
     
-    # counter_5l için son pozitif (>0) değeri al
-    result_5l = await db.execute(
-        select(DeviceReading)
-        .where(DeviceReading.device_id == device_id)
-        .where(DeviceReading.counter_5l > 0)
-        .order_by(DeviceReading.timestamp.desc())
-        .limit(1)
-    )
-    reading_5l = result_5l.scalar_one_or_none()
+    if latest_reading:
+        # Son okuma varsa, değerleri kullan (0 dahil)
+        counter_19l = latest_reading.counter_19l if latest_reading.counter_19l is not None else 0
+        counter_5l = latest_reading.counter_5l if latest_reading.counter_5l is not None else 0
+        timestamp = latest_reading.timestamp
+        
+        # Eğer son okumada bir sayaç NULL ise, o sayaç için son geçerli değeri bul
+        if latest_reading.counter_19l is None:
+            result_19l = await db.execute(
+                select(DeviceReading.counter_19l)
+                .where(DeviceReading.device_id == device_id)
+                .where(DeviceReading.counter_19l.isnot(None))
+                .order_by(DeviceReading.timestamp.desc())
+                .limit(1)
+            )
+            last_19l = result_19l.scalar_one_or_none()
+            counter_19l = last_19l if last_19l is not None else 0
+        
+        if latest_reading.counter_5l is None:
+            result_5l = await db.execute(
+                select(DeviceReading.counter_5l)
+                .where(DeviceReading.device_id == device_id)
+                .where(DeviceReading.counter_5l.isnot(None))
+                .order_by(DeviceReading.timestamp.desc())
+                .limit(1)
+            )
+            last_5l = result_5l.scalar_one_or_none()
+            counter_5l = last_5l if last_5l is not None else 0
+        
+        return {
+            "counter_19l": counter_19l,
+            "counter_5l": counter_5l,
+            "timestamp": timestamp
+        }
     
-    # Her iki sayaç için de değerleri al
-    counter_19l = reading_19l.counter_19l if reading_19l else 0
-    counter_5l = reading_5l.counter_5l if reading_5l else 0
-    
-    # Timestamp: en son okunan değerin timestamp'ini kullan
-    # Her iki okuma varsa daha yeni olanı seç
-    # SQLite returns naive datetimes, ensure they're timezone-aware for comparison
-    timestamp = None
-    if reading_19l and reading_5l:
-        ts_19l = reading_19l.timestamp
-        ts_5l = reading_5l.timestamp
-        # Make both timezone-aware for comparison
-        if ts_19l and ts_19l.tzinfo is None:
-            ts_19l = ts_19l.replace(tzinfo=timezone.utc)
-        if ts_5l and ts_5l.tzinfo is None:
-            ts_5l = ts_5l.replace(tzinfo=timezone.utc)
-        timestamp = max(ts_19l, ts_5l)
-    elif reading_19l:
-        timestamp = reading_19l.timestamp
-    elif reading_5l:
-        timestamp = reading_5l.timestamp
-    
+    # Hiç okuma yoksa 0 döndür
     return {
-        "counter_19l": counter_19l,
-        "counter_5l": counter_5l,
-        "timestamp": timestamp
+        "counter_19l": 0,
+        "counter_5l": 0,
+        "timestamp": None
     }
 
 

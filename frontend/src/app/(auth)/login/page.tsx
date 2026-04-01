@@ -2,18 +2,28 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, useIsAuthenticated } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const isAuthenticated = useIsAuthenticated();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Zaten giriş yapmışsa dashboard'a yönlendir
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, router]);
+
   // Localhost'ta otomatik giriş
   useEffect(() => {
+    if (isAuthenticated) return; // Zaten giriş yapmışsa atla
+
     const isLocalhost =
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1';
@@ -28,10 +38,11 @@ export default function LoginPage() {
     try {
       // Varsayılan admin bilgileri ile otomatik giriş
       await login({ username: 'admin', password: 'admin123' });
-      router.push('/');
+      // router.push kullanmıyoruz - isAuthenticated effect'i yönlendirecek
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Otomatik giriş başarısız';
       setError(message);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -43,7 +54,7 @@ export default function LoginPage() {
 
     try {
       await login({ username, password });
-      router.push('/');
+      // router.push kullanmıyoruz - isAuthenticated effect'i yönlendirecek
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Giriş başarısız';
       setError(message);

@@ -203,8 +203,9 @@ class TuyaService:
 
                 # Get all device statuses from cloud in one call
                 # IMPORTANT: Use verbose=True to get raw JSON with 'online' status
+                # Run in thread to avoid blocking the event loop (tinytuya uses sync urllib3)
                 try:
-                    cloud_response = self._cloud.getdevices(verbose=True)
+                    cloud_response = await asyncio.to_thread(self._cloud.getdevices, verbose=True)
                 except Exception as e:
                     logger.error(f"Failed to get devices from Tuya Cloud: {e}")
                     return
@@ -257,7 +258,7 @@ class TuyaService:
                         # Only try to get detailed status if device is online
                         if is_online:
                             try:
-                                status = self._cloud.getstatus(device.device_id)
+                                status = await asyncio.to_thread(self._cloud.getstatus, device.device_id)
                                 extracted = self._extract_power_state(status)
                                 if extracted is not None:
                                     power_state = extracted
@@ -914,7 +915,15 @@ class TuyaService:
         previous_state = device.power_state
         logger.info(f"Starting restart for device {device.name} ({device.device_id})")
 
-        # Strategy 1: Try countdown-based restart (hardware timer)
+        # Strategy 1: Try Cloud Timer restart (best for modem-connected plugs)
+        # Timer is pushed to device firmware and executes locally even without internet
+        timer_result = await self._restart_with_cloud_timer(
+            db, device, delay_seconds, previous_state, performed_by
+        )
+        if timer_result:
+            return timer_result
+
+        # Strategy 2: Try countdown-based restart (hardware timer)
         countdown_code = self._check_countdown_support(device.device_id)
         if countdown_code:
             logger.info(f"Using COUNTDOWN strategy for {device.name} (code: {countdown_code})")
@@ -923,7 +932,7 @@ class TuyaService:
             )
             return result
 
-        # Strategy 2: Try relay_status (power-on recovery)
+        # Strategy 3: Try relay_status (power-on recovery)
         if self._check_relay_status_support(device.device_id):
             logger.info(f"Using RELAY_STATUS strategy for {device.name}")
             result = await self._restart_with_relay_status(
@@ -931,12 +940,152 @@ class TuyaService:
             )
             return result
 
-        # Strategy 3: Sequential restart (fallback)
+        # Strategy 4: Sequential restart (fallback)
         logger.info(f"Using SEQUENTIAL strategy for {device.name}")
         result = await self._restart_sequential(
             db, device, delay_seconds, previous_state, performed_by
         )
         return result
+
+    async def _restart_with_cloud_timer(
+        self,
+        db: AsyncSession,
+        device: TuyaDevice,
+        delay_seconds: int,
+        previous_state: bool,
+        performed_by: Optional[str],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Restart using Tuya Cloud Timer API.
+        Creates two timers: OFF in 2 minutes, ON in 3 minutes.
+        Timers are pushed to device firmware and execute locally even without internet.
+        This is the BEST strategy for modem-connected plugs.
+        
+        Returns None if timer API fails (to fallback to other strategies).
+        """
+        if not self._cloud:
+            logger.warning("Cloud not available for timer restart")
+            return None
+        
+        success = False
+        error_message = None
+        timer_ids = []
+        
+        try:
+            from datetime import datetime, timedelta
+            
+            now = datetime.now()
+            # Use 2 minutes for OFF, 3 minutes for ON (timer needs enough lead time)
+            turn_off_time = now + timedelta(minutes=2)
+            turn_on_time = now + timedelta(minutes=3)
+            
+            # IMPORTANT: Timer API always expects "power" code regardless of device's actual function code
+            # This was discovered through testing - Timer API rejects "switch_1" and "switch_led"
+            # Device might use "switch_1", "switch_led", or "power" for control commands,
+            # but Timer API ONLY accepts "power" code
+            timer_api_code = "power"
+            logger.info(f"Using Cloud Timer API for {device.name} with code={timer_api_code}")
+            
+            # Create OFF timer
+            off_payload = {
+                "time": turn_off_time.strftime("%H:%M"),
+                "timezone_id": "Europe/Istanbul",
+                "date": turn_off_time.strftime("%Y%m%d"),
+                "loops": "0000000",  # One-time
+                "functions": [{"code": timer_api_code, "value": False}]
+            }
+            
+            off_uri = f"/v2.0/cloud/timer/device/{device.device_id}"
+            off_result = self._cloud.cloudrequest(off_uri, action="POST", post=off_payload)
+            
+            if not off_result or not off_result.get("success"):
+                logger.warning(f"Cloud Timer OFF failed for {device.device_id}: {off_result}")
+                return None
+            
+            timer_id_off = off_result.get("result", {}).get("timer_id")
+            timer_ids.append(timer_id_off)
+            logger.info(f"Created OFF timer {timer_id_off} for {device.name} at {turn_off_time.strftime('%H:%M')}")
+            
+            # Create ON timer
+            on_payload = {
+                "time": turn_on_time.strftime("%H:%M"),
+                "timezone_id": "Europe/Istanbul",
+                "date": turn_on_time.strftime("%Y%m%d"),
+                "loops": "0000000",  # One-time
+                "functions": [{"code": timer_api_code, "value": True}]
+            }
+            
+            on_result = self._cloud.cloudrequest(off_uri, action="POST", post=on_payload)
+            
+            if not on_result or not on_result.get("success"):
+                logger.warning(f"Cloud Timer ON failed for {device.device_id}: {on_result}")
+                # Clean up OFF timer
+                try:
+                    del_uri = f"/v2.0/cloud/timer/device/{device.device_id}/{timer_id_off}"
+                    self._cloud.cloudrequest(del_uri, action="DELETE")
+                except:
+                    pass
+                return None
+            
+            timer_id_on = on_result.get("result", {}).get("timer_id")
+            timer_ids.append(timer_id_on)
+            logger.info(f"Created ON timer {timer_id_on} for {device.name} at {turn_on_time.strftime('%H:%M')}")
+            
+            success = True
+            
+            # Update database
+            device.power_state = False  # Will be off soon
+            device.last_control_at = datetime.utcnow()
+            await db.flush()
+            
+            # Update cache
+            self._state_cache[device.device_id] = {
+                "online": True,
+                "on": False,
+                "last_updated": time.time(),
+                "restart_pending": True,
+                "restart_eta": time.time() + delay_seconds,
+                "timer_ids": timer_ids,
+            }
+            
+            logger.info(
+                f"Device {device.name}: Cloud Timer restart initiated "
+                f"(OFF at {turn_off_time.strftime('%H:%M')}, ON at {turn_on_time.strftime('%H:%M')})"
+            )
+            
+        except Exception as e:
+            success = False
+            error_message = str(e)
+            logger.error(f"Error in Cloud Timer restart for {device.device_id}: {e}")
+        
+        # Create audit log
+        control_log = TuyaDeviceControlLog(
+            tuya_device_id=device.id,
+            action="restart_timer",
+            previous_state=previous_state,
+            new_state=False if success else None,
+            success=success,
+            error_message=error_message,
+            performed_by=performed_by,
+            performed_at=datetime.utcnow(),
+        )
+        db.add(control_log)
+        await db.commit()
+        
+        if not success:
+            return None
+        
+        return {
+            "success": True,
+            "power_state": False,
+            "strategy": "timer",
+            "message": (
+                f"Cihaz 2 dakika sonra kapanacak, 3 dakika sonra açılacak. "
+                f"Timer'lar cihazın hafızasına kaydedildi, internet olmasa bile çalışacak."
+            ),
+            "delay_seconds": delay_seconds,
+            "timer_ids": timer_ids,
+        }
 
     async def _restart_with_countdown(
         self,

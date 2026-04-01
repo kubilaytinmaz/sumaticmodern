@@ -71,7 +71,7 @@ export interface TuyaDeviceControlResponse {
   success: boolean;
   power_state: boolean;
   message: string;
-  strategy?: 'countdown' | 'relay_status' | 'sequential';
+  strategy?: 'timer' | 'countdown' | 'relay_status' | 'sequential';
   delay_seconds?: number;
   turn_on_failed?: boolean; // True if sequential restart failed to turn device back on (modem/router control scenario)
 }

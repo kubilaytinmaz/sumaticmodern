@@ -1,26 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { useIsAuthenticated } from '@/hooks/useAuth';
+import { useIsAuthenticated, useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isAuthenticated = useIsAuthenticated();
+  const { checkAuth } = useAuth();
   const { isConnected } = useWebSocket();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // Client-side auth check - redirect to login if not authenticated
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    // Wait for zustand persist to hydrate, then check auth
+    const init = async () => {
+      await checkAuth();
+      setIsHydrated(true);
+    };
+    init();
+  }, []);
 
-  // Show loading state while checking auth
-  if (!isAuthenticated) {
+  useEffect(() => {
+    // Only redirect after hydration is complete
+    if (isHydrated && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isHydrated, isAuthenticated, router]);
+
+  // Show loading state while hydrating
+  if (!isHydrated || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Yükleniyor...</p>

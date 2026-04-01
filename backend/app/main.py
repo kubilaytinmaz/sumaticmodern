@@ -3,6 +3,7 @@ Sumatic Modern IoT - Main Application
 FastAPI application factory with startup/shutdown events.
 Integrated with SSH tunnel for remote MQTT broker access.
 """
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -159,8 +160,14 @@ async def lifespan(app: FastAPI):
             from app.services.tuya_service import get_tuya_service
             tuya_service = get_tuya_service()
             await tuya_service.initialize()
-            await tuya_service.start_polling()
-            logger.info("[OK] Tuya Cloud service initialized and polling started")
+            # Polling uses tinytuya which makes synchronous HTTP calls
+            # Start polling after a delay to not block startup
+            async def _delayed_polling():
+                await asyncio.sleep(5)  # Wait 5 seconds for server to be ready
+                await tuya_service.start_polling()
+                logger.info("[OK] Tuya Cloud polling started (delayed)")
+            asyncio.create_task(_delayed_polling())
+            logger.info("[OK] Tuya Cloud service initialized (polling will start in 5s)")
         except Exception as e:
             logger.warning(f"[WARN] Tuya Cloud service initialization failed: {e}")
     else:
@@ -257,16 +264,19 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"],
     )
     
-    # ─── Rate Limiting Middleware ─────────────────────────────────────
-    app.add_middleware(RateLimitMiddleware)
+    # ─── Rate Limiting Middleware ��────────────────────────────────────
+    # TEMPORARILY DISABLED - BaseHTTPMiddleware causes event loop blocking
+    # app.add_middleware(RateLimitMiddleware)
     
     # ─── Security Headers Middleware ─────────────────────────────────
-    app.add_middleware(SecurityHeadersMiddleware)
+    # TEMPORARILY DISABLED - BaseHTTPMiddleware causes event loop blocking
+    # app.add_middleware(SecurityHeadersMiddleware)
     
     # ─── Request Size Limit Middleware ───────────────────────────────
     # Prevents large payload attacks (DDoS, memory exhaustion)
     # Disabled in DEBUG mode for development convenience
-    app.add_middleware(RequestSizeLimitMiddleware)
+    # TEMPORARILY DISABLED - BaseHTTPMiddleware causes event loop blocking
+    # app.add_middleware(RequestSizeLimitMiddleware)
     
     # ─── API Security Middleware ──────────────────────────────────────
     # Add security headers and filter sensitive data from API responses

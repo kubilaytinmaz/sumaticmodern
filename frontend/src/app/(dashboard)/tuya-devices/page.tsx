@@ -241,6 +241,11 @@ export default function TuyaDevicesPage() {
         // Show success message based on strategy and result
         let message = result.message || 'Cihaz yeniden başlatıldı';
         
+        // For timer strategy, show scheduled times
+        if (result.strategy === 'timer') {
+          message = result.message || 'Zamanlayıcılar oluşturuldu. Cihaz 2 dk sonra kapanıp 3 dk sonra açılacak.';
+        }
+        
         // For sequential strategy with turn_on_failed flag
         if (result.strategy === 'sequential' && result.turn_on_failed) {
           message = result.message || 'Cihaz kapatıldı. Tekrar açma başarısız oldu (internet bağlantısı kesildi). Cihazı manuel olarak açmanız gerekebilir.';
@@ -256,6 +261,13 @@ export default function TuyaDevicesPage() {
               : device
           )
         );
+        
+        // For timer strategy, refresh after 3 minutes to show final state
+        if (result.strategy === 'timer') {
+          setTimeout(() => {
+            refreshStatus(deviceId);
+          }, 3.5 * 60 * 1000); // 3.5 minutes
+        }
         
         // For countdown strategy, refresh after delay to show final state
         if (result.strategy === 'countdown') {
