@@ -136,7 +136,7 @@ export default function DashboardPage() {
     }
   }, [monthOptions, selectedMonth]);
 
-  // Initialize cumulative comparison with current month and previous month
+  // Initialize cumulative comparison with previous month and current month
   useEffect(() => {
     if (monthOptions.length >= 2 && !selectedMonth1 && !selectedMonth2) {
       const currentMonth = getCurrentMonthValue();
@@ -146,10 +146,31 @@ export default function DashboardPage() {
       const currentExists = monthOptions.some(m => m.value === currentMonth);
       const previousExists = monthOptions.some(m => m.value === previousMonth);
       
-      setSelectedMonth1(currentExists ? currentMonth : monthOptions[0].value);
-      setSelectedMonth2(previousExists ? previousMonth : monthOptions[1].value);
+      // month1 = previous month, month2 = current month (selected)
+      setSelectedMonth1(previousExists ? previousMonth : monthOptions[0].value);
+      setSelectedMonth2(currentExists ? currentMonth : monthOptions[1].value);
     }
   }, [monthOptions.length]);
+
+  // Update cumulative comparison months when main month selector changes
+  useEffect(() => {
+    if (selectedMonth && monthOptions.length >= 2) {
+      const selectedIndex = monthOptions.findIndex(m => m.value === selectedMonth);
+      if (selectedIndex >= 0) {
+        // Set second month to selected month (current selection)
+        setSelectedMonth2(selectedMonth);
+        
+        // Set first month to previous month (if available)
+        if (selectedIndex > 0) {
+          // Previous month exists, use it for month1
+          setSelectedMonth1(monthOptions[selectedIndex - 1].value);
+        } else {
+          // If selected month is the first option, use the next available month for comparison
+          setSelectedMonth1(monthOptions[1].value);
+        }
+      }
+    }
+  }, [selectedMonth, monthOptions]);
 
   // Fetch monthly stats
   const fetchMonthlyStats = useCallback(async (year: number, month: number) => {

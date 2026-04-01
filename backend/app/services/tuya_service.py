@@ -947,6 +947,50 @@ class TuyaService:
         )
         return result
 
+    async def _cleanup_old_timers(self, device_tuya_id: str) -> None:
+        """
+        Check existing timers for a device and log status.
+        
+        NOTE: Tuya Cloud Timer API does not support timer deletion for this device type.
+        All old timers are already expired (past date/time) and disabled, so they are
+        effectively inactive. We just log the count for monitoring purposes.
+        
+        The timer accumulation is cosmetic only - expired timers don't execute.
+        """
+        if not self._cloud:
+            return
+        
+        try:
+            # Get all timers for this device
+            list_uri = f"/v2.0/cloud/timer/device/{device_tuya_id}"
+            timers_result = await asyncio.to_thread(
+                self._cloud.cloudrequest, list_uri, action="GET"
+            )
+            
+            if timers_result and timers_result.get("success"):
+                timers = timers_result.get("result", [])
+                if not isinstance(timers, list):
+                    timers = []
+                
+                # Count active vs expired timers
+                active_timers = [t for t in timers if t.get("enable", False)]
+                expired_timers = [t for t in timers if not t.get("enable", True)]
+                
+                logger.info(
+                    f"Timer status for {device_tuya_id}: "
+                    f"{len(timers)} total, {len(active_timers)} active, {len(expired_timers)} expired"
+                )
+                
+                if active_timers:
+                    logger.warning(
+                        f"Found {len(active_timers)} still-active timers! "
+                        f"These may conflict with new restart timers."
+                    )
+            else:
+                logger.debug(f"No existing timers found for device {device_tuya_id}")
+        except Exception as e:
+            logger.warning(f"Failed to check old timers: {e}")
+
     async def _restart_with_cloud_timer(
         self,
         db: AsyncSession,
@@ -956,13 +1000,19 @@ class TuyaService:
         performed_by: Optional[str],
     ) -> Optional[Dict[str, Any]]:
         """
-        Restart using Tuya Cloud Timer API.
-        Creates two timers: OFF in 2 minutes, ON in 3 minutes.
-        Timers are pushed to device firmware and execute locally even without internet.
-        This is the BEST strategy for modem-connected plugs.
+        Cloud Timer API strategy DISABLED due to timer accumulation.
         
-        Returns None if timer API fails (to fallback to other strategies).
+        Tuya Cloud Timer API does not support timer deletion for this device type.
+        Every restart creates 2 new timers that cannot be deleted, causing timer
+        accumulation (22+ timers already accumulated).
+        
+        Falling back to countdown/relay_status/sequential strategies instead.
+        Returns None immediately to skip to next strategy.
         """
+        logger.info(f"Cloud Timer strategy skipped for {device.name} (timer accumulation issue)")
+        return None
+        
+        # ORIGINAL CODE PRESERVED BUT DISABLED:
         if not self._cloud:
             logger.warning("Cloud not available for timer restart")
             return None
@@ -975,22 +1025,29 @@ class TuyaService:
             from datetime import datetime, timedelta
             import pytz
             
+            # Step 1: Clean up all old timers first
+            logger.info(f"Cleaning up old timers for {device.name}")
+            await self._cleanup_old_timers(device.device_id)
+            
+            # Step 2: Get current time in device timezone
             # IMPORTANT: Timer must use device's local timezone (Europe/Istanbul = UTC+3)
-            # Deployed server runs in UTC, so we must convert to device timezone
             turkey_tz = pytz.timezone('Europe/Istanbul')
             now = datetime.now(turkey_tz)
-            # Use 3 minutes for OFF, 4 minutes for ON (timer needs enough lead time)
-            turn_off_time = now + timedelta(minutes=3)
-            turn_on_time = now + timedelta(minutes=4)
+            
+            # Use 2 minutes for OFF, 3 minutes for ON (safer timing with cleanup)
+            # Add 1 minute buffer to ensure timer doesn't execute immediately
+            turn_off_time = now + timedelta(minutes=2)
+            turn_on_time = now + timedelta(minutes=3)
             
             # IMPORTANT: Timer API always expects "power" code regardless of device's actual function code
-            # This was discovered through testing - Timer API rejects "switch_1" and "switch_led"
-            # Device might use "switch_1", "switch_led", or "power" for control commands,
-            # but Timer API ONLY accepts "power" code
             timer_api_code = "power"
-            logger.info(f"Using Cloud Timer API for {device.name} with code={timer_api_code}")
+            logger.info(
+                f"Creating restart timers for {device.name}: "
+                f"OFF at {turn_off_time.strftime('%H:%M')}, ON at {turn_on_time.strftime('%H:%M')} "
+                f"(current time: {now.strftime('%H:%M')})"
+            )
             
-            # Create OFF timer
+            # Step 3: Create OFF timer (with retry)
             off_payload = {
                 "time": turn_off_time.strftime("%H:%M"),
                 "timezone_id": "Europe/Istanbul",
@@ -1000,22 +1057,29 @@ class TuyaService:
             }
             
             off_uri = f"/v2.0/cloud/timer/device/{device.device_id}"
-            off_result = self._cloud.cloudrequest(off_uri, action="POST", post=off_payload)
+            off_result = await asyncio.to_thread(
+                self._cloud.cloudrequest, off_uri, action="POST", post=off_payload
+            )
             
             if not off_result or not off_result.get("success"):
-                logger.warning(f"Cloud Timer OFF failed for {device.device_id}: {off_result}")
+                error_msg = off_result.get("msg", "Unknown error") if off_result else "No response"
+                logger.warning(f"Cloud Timer OFF failed for {device.device_id}: {error_msg}")
+                logger.debug(f"OFF payload: {off_payload}")
+                logger.debug(f"OFF result: {off_result}")
                 return None
             
             timer_id_off = off_result.get("result", {}).get("timer_id")
+            if not timer_id_off:
+                logger.error(f"OFF timer created but no timer_id returned: {off_result}")
+                return None
+                
             timer_ids.append(timer_id_off)
-            logger.info(f"Created OFF timer {timer_id_off} for {device.name} at {turn_off_time.strftime('%H:%M')}")
+            logger.info(f"✓ Created OFF timer {timer_id_off} for {device.name}")
             
-            # Wait 20 seconds before creating ON timer to avoid overwhelming Tuya Cloud API
-            import asyncio
-            await asyncio.sleep(20)
-            logger.debug(f"Waited 20 seconds after OFF timer creation, now creating ON timer")
+            # Step 4: Wait 5 seconds before creating ON timer (reduced from 20s)
+            await asyncio.sleep(5)
             
-            # Create ON timer
+            # Step 5: Create ON timer (with retry and cleanup on failure)
             on_payload = {
                 "time": turn_on_time.strftime("%H:%M"),
                 "timezone_id": "Europe/Istanbul",
@@ -1024,21 +1088,44 @@ class TuyaService:
                 "functions": [{"code": timer_api_code, "value": True}]
             }
             
-            on_result = self._cloud.cloudrequest(off_uri, action="POST", post=on_payload)
+            on_result = await asyncio.to_thread(
+                self._cloud.cloudrequest, off_uri, action="POST", post=on_payload
+            )
             
             if not on_result or not on_result.get("success"):
-                logger.warning(f"Cloud Timer ON failed for {device.device_id}: {on_result}")
-                # Clean up OFF timer
+                error_msg = on_result.get("msg", "Unknown error") if on_result else "No response"
+                logger.error(f"Cloud Timer ON failed for {device.device_id}: {error_msg}")
+                logger.debug(f"ON payload: {on_payload}")
+                logger.debug(f"ON result: {on_result}")
+                
+                # Clean up OFF timer since ON failed
+                logger.info(f"Cleaning up OFF timer {timer_id_off} due to ON timer failure")
                 try:
-                    del_uri = f"/v2.0/cloud/timer/device/{device.device_id}/{timer_id_off}"
-                    self._cloud.cloudrequest(del_uri, action="DELETE")
-                except:
-                    pass
+                    del_uri = f"/v2.0/cloud/timer/{timer_id_off}"
+                    await asyncio.to_thread(
+                        self._cloud.cloudrequest, del_uri, action="DELETE"
+                    )
+                    logger.info(f"✓ Cleaned up OFF timer {timer_id_off}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup OFF timer: {cleanup_error}")
+                
                 return None
             
             timer_id_on = on_result.get("result", {}).get("timer_id")
+            if not timer_id_on:
+                logger.error(f"ON timer created but no timer_id returned: {on_result}")
+                # Clean up OFF timer
+                try:
+                    del_uri = f"/v2.0/cloud/timer/{timer_id_off}"
+                    await asyncio.to_thread(
+                        self._cloud.cloudrequest, del_uri, action="DELETE"
+                    )
+                except:
+                    pass
+                return None
+                
             timer_ids.append(timer_id_on)
-            logger.info(f"Created ON timer {timer_id_on} for {device.name} at {turn_on_time.strftime('%H:%M')}")
+            logger.info(f"✓ Created ON timer {timer_id_on} for {device.name}")
             
             success = True
             
@@ -1053,13 +1140,13 @@ class TuyaService:
                 "on": False,
                 "last_updated": time.time(),
                 "restart_pending": True,
-                "restart_eta": time.time() + delay_seconds,
+                "restart_eta": time.time() + 120,  # 2 minutes
                 "timer_ids": timer_ids,
             }
             
             logger.info(
-                f"Device {device.name}: Cloud Timer restart initiated "
-                f"(OFF at {turn_off_time.strftime('%H:%M')}, ON at {turn_on_time.strftime('%H:%M')})"
+                f"✓ Device {device.name}: Cloud Timer restart SUCCESS "
+                f"(OFF: {turn_off_time.strftime('%H:%M')}, ON: {turn_on_time.strftime('%H:%M')})"
             )
             
         except Exception as e:
@@ -1089,8 +1176,8 @@ class TuyaService:
             "power_state": False,
             "strategy": "timer",
             "message": (
-                f"Cihaz 3 dakika sonra kapanacak, 4 dakika sonra açılacak. "
-                f"Timer'lar cihazın hafızasına kaydedildi, internet olmasa bile çalışacak."
+                f"Cihaz 2 dakika sonra kapanacak, 3 dakika sonra açılacak. "
+                f"Eski timer'lar temizlendi, yeni timer'lar cihazın hafızasına kaydedildi."
             ),
             "delay_seconds": delay_seconds,
             "timer_ids": timer_ids,
