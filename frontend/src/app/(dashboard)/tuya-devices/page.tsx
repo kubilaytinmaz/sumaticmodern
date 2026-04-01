@@ -379,7 +379,7 @@ export default function TuyaDevicesPage() {
             ) : (
               <Cloud className="mr-2 h-4 w-4" />
             )}
-            Cloud'dan Getir
+            Cloud&apos;dan Getir
           </Button>
           <Button
             variant="outline"
@@ -421,7 +421,7 @@ export default function TuyaDevicesPage() {
                         Tuya Cloud API Yapılandırması Gerekli
                       </p>
                       <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                        Cihazları Cloud'dan çekmek için API bilgilerinizi girin
+                        Cihazları Cloud&apos;dan çekmek için API bilgilerinizi girin
                       </p>
                     </div>
                   </>
@@ -521,7 +521,7 @@ export default function TuyaDevicesPage() {
                   ) : (
                     <Cloud className="mr-2 h-4 w-4" />
                   )}
-                  Cloud\'dan Getir
+                  Cloud&apos;dan Getir
                 </Button>
               )}
               <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -776,7 +776,7 @@ export default function TuyaDevicesPage() {
       <Dialog open={isDiscoverDialogOpen} onOpenChange={setIsDiscoverDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Cloud\'dan Bulunan Cihazlar</DialogTitle>
+            <DialogTitle>Cloud&apos;dan Bulunan Cihazlar</DialogTitle>
             <DialogDescription>
               Tuya Cloud hesabınızda bulunan cihazlar. Eklemek istediğiniz cihazları seçin.
             </DialogDescription>
