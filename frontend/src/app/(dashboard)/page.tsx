@@ -15,7 +15,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { formatMoney } from '@/lib/utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const REFRESH_INTERVAL = 30000; // 30 seconds
+const REFRESH_INTERVAL = 60000; // 60 seconds - sessiz yenileme
 
 // API Response Types
 interface DeviceOfflineInfo {
@@ -240,12 +240,17 @@ export default function DashboardPage() {
   const fetchAllData = useCallback(async (showRefreshing = false) => {
     if (!selectedMonth) return;
 
+    // Sessiz yenileme: zaten veri varsa loading gösterme
+    const hasExistingData = monthlyStats !== null || monthlyBreakdown !== null;
     if (showRefreshing) {
       setIsRefreshing(true);
-    } else {
+    } else if (!hasExistingData) {
       setIsLoading(true);
     }
-    setError(null);
+    // Sessiz yenilemede error'ı temizleme — mevcut veriyi koru
+    if (!hasExistingData) {
+      setError(null);
+    }
 
     try {
       const selectedOption = monthOptions.find(m => m.value === selectedMonth);
@@ -276,10 +281,10 @@ export default function DashboardPage() {
     }
   }, [selectedMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-refresh
+  // Auto-refresh - sessiz yenileme (kullanıcı fark etmez)
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchAllData(true);
+      fetchAllData(false); // showRefreshing=false: sessiz yenileme
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(interval);

@@ -175,8 +175,10 @@ export default function DeviceDetailPage() {
   }, [selectedDeviceId, metric]);
 
   // Fetch chart data based on selected device
-  const fetchChartData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchChartData = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     const selectedSlots = SLOT_OPTIONS.find(s => s.value === slotCount)?.slots || 30;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     try {
@@ -190,7 +192,9 @@ export default function DeviceDetailPage() {
     } catch (error) {
       console.error('Failed to fetch chart data:', error);
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, [selectedDeviceId, period, slotCount, metric]);
 
@@ -200,13 +204,25 @@ export default function DeviceDetailPage() {
     }
   }, [fetchChartData, selectedDeviceId]);
 
-  // Otomatik yenileme: 30 saniyede bir verileri güncelle
+  // Otomatik sessiz yenileme: 60 saniyede bir verileri arka planda güncelle
   useEffect(() => {
     if (!selectedDeviceId || selectedDeviceId === 'all') return;
 
-    const interval = setInterval(() => {
-      fetchChartData();
-    }, 30000); // 30 saniye
+    const interval = setInterval(async () => {
+      // Cihaz listesini de sessizce güncelle
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/api/v1/charts/devices/summary`);
+        if (res.ok) {
+          const data = await res.json();
+          setDevices(data.devices || []);
+        }
+      } catch (error) {
+        console.error('Silent device refresh failed:', error);
+      }
+      // Grafik verilerini sessizce güncelle
+      fetchChartData(true); // silent=true: loading gösterme
+    }, 60000); // 60 saniye (1 dakika)
 
     return () => clearInterval(interval);
   }, [fetchChartData, selectedDeviceId]);

@@ -45,24 +45,38 @@ export default function DevicesPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch devices from API
-  useEffect(() => {
-    const fetchDevices = async () => {
+  const fetchDevices = async (silent = false) => {
+    if (!silent) {
       setIsLoading(true);
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/api/v1/charts/devices/summary`);
-        if (res.ok) {
-          const data = await res.json();
-          setDevices(data.devices || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch devices:', error);
-      } finally {
+    }
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/api/v1/charts/devices/summary`);
+      if (res.ok) {
+        const data = await res.json();
+        setDevices(data.devices || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch devices:', error);
+    } finally {
+      if (!silent) {
         setIsLoading(false);
       }
-    };
+    }
+  };
 
-    fetchDevices();
+  // İlk yükleme
+  useEffect(() => {
+    fetchDevices(false);
+  }, []);
+
+  // Otomatik sessiz yenileme: 60 saniyede bir
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDevices(true); // silent=true: loading gösterme
+    }, 60000); // 60 saniye
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredDevices = devices.filter(
@@ -73,7 +87,7 @@ export default function DevicesPage() {
   );
 
   const handleRefresh = () => {
-    window.location.reload();
+    fetchDevices(false);
   };
 
   return (

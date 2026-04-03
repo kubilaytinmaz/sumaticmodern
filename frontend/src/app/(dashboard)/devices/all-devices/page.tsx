@@ -260,13 +260,25 @@ export default function AllDevicesPage() {
     }
   }, [fetchChartData, devices.length]);
 
-  // Otomatik yenileme: 30 saniyede bir arka planda güncelle (kartlar görünür kalır)
+  // Otomatik yenileme: 60 saniyede bir sessiz güncelleme (kullanıcı fark etmez)
   useEffect(() => {
     if (devices.length === 0) return;
 
-    const interval = setInterval(() => {
-      fetchChartData(false); // isInitial=false: kartlar kaybolmaz
-    }, 30000); // 30 saniye
+    const interval = setInterval(async () => {
+      // Cihaz listesini de sessizce güncelle (online/offline durumları, toplam değerler)
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/api/v1/charts/devices/summary`);
+        if (res.ok) {
+          const data = await res.json();
+          setDevices(data.devices || []);
+        }
+      } catch (error) {
+        console.error('Silent device refresh failed:', error);
+      }
+      // Grafik ve tablo verilerini sessizce güncelle
+      fetchChartData(false); // isInitial=false: kartlar kaybolmaz, "Güncelleniyor..." gösterilmez
+    }, 60000); // 60 saniye (1 dakika)
 
     return () => clearInterval(interval);
   }, [fetchChartData, devices.length]);
@@ -853,14 +865,7 @@ export default function AllDevicesPage() {
           {isInitialLoading ? (
             <div className="h-[350px] flex items-center justify-center text-muted-foreground">Yükleniyor...</div>
           ) : (
-            <div className="relative">
-              {isRefreshing && (
-                <div className="absolute top-2 right-2 z-10 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border">
-                  Güncelleniyor...
-                </div>
-              )}
-              {renderChart(totalRevenueData, revenueChartType, 'primary', 'Toplam Ciro', 'colorRevenue')}
-            </div>
+            renderChart(totalRevenueData, revenueChartType, 'primary', 'Toplam Ciro', 'colorRevenue')
           )}
         </CardContent>
       </Card>
@@ -914,14 +919,7 @@ export default function AllDevicesPage() {
           {isInitialLoading ? (
             <div className="h-[350px] flex items-center justify-center text-muted-foreground">Yükleniyor...</div>
           ) : (
-            <div className="relative">
-              {isRefreshing && (
-                <div className="absolute top-2 right-2 z-10 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border">
-                  Güncelleniyor...
-                </div>
-              )}
-              {renderChart(deltaData, deltaChartType, 'success', 'Artış', 'colorDelta', true)}
-            </div>
+            renderChart(deltaData, deltaChartType, 'success', 'Artış', 'colorDelta', true)
           )}
         </CardContent>
       </Card>
