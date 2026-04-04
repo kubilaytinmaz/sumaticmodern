@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Wifi,
   WifiOff,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -21,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -31,6 +34,7 @@ interface NavbarProps {
 export function Navbar({ isConnected = false, alertCount = 0 }: NavbarProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -73,6 +77,21 @@ export function Navbar({ isConnected = false, alertCount = 0 }: NavbarProps) {
             </>
           )}
         </div>
+
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="relative"
+          title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5 text-muted-foreground transition-transform hover:text-foreground" />
+          ) : (
+            <Moon className="h-5 w-5 text-muted-foreground transition-transform hover:text-foreground" />
+          )}
+        </Button>
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
