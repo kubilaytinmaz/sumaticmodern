@@ -106,7 +106,7 @@ function renderBarChart(data: RevenueData[], height: number) {
           dataKey="19L"
           position="center"
           formatter={(value: number) => value > 0 ? formatMoney(value) : ''}
-          style={{ fontSize: '11px', fill: '#1e293b', fontWeight: 600 }}
+          style={{ fontSize: '11px', fill: '#ffffff', fontWeight: 600 }}
         />
       </Bar>
       <Bar
@@ -121,7 +121,7 @@ function renderBarChart(data: RevenueData[], height: number) {
           dataKey="5L"
           position="center"
           formatter={(value: number) => value > 0 ? formatMoney(value) : ''}
-          style={{ fontSize: '11px', fill: '#1e293b', fontWeight: 600 }}
+          style={{ fontSize: '11px', fill: '#ffffff', fontWeight: 600 }}
         />
         <LabelList
           dataKey="total"
@@ -304,7 +304,7 @@ function renderComposedChart(data: RevenueData[], height: number) {
           dataKey="19L"
           position="center"
           formatter={(value: number) => value > 0 ? formatMoney(value) : ''}
-          style={{ fontSize: '11px', fill: '#1e293b', fontWeight: 600 }}
+          style={{ fontSize: '11px', fill: '#ffffff', fontWeight: 600 }}
         />
       </Bar>
       <Bar
@@ -318,7 +318,7 @@ function renderComposedChart(data: RevenueData[], height: number) {
           dataKey="5L"
           position="center"
           formatter={(value: number) => value > 0 ? formatMoney(value) : ''}
-          style={{ fontSize: '11px', fill: '#1e293b', fontWeight: 600 }}
+          style={{ fontSize: '11px', fill: '#ffffff', fontWeight: 600 }}
         />
         <LabelList
           dataKey="total"

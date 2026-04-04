@@ -377,8 +377,8 @@ export default function AllDevicesPage() {
           const label = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(0);
           const textX = x + width / 2;
           const textY = y + height / 2 + 4;
-          // 19L (mavi bar) için açık renk, 5L (yeşil bar) için koyu renk
-          const textColor = dataKey === 'value_19l' ? '#e0f2fe' : '#14532d';
+          // Bar içi metin rengi - her ikisi için de beyaz
+          const textColor = '#ffffff';
           return (
             <text x={textX} y={textY} textAnchor="middle" fill={textColor} fontSize={11} fontWeight={700}>{label}</text>
           );
