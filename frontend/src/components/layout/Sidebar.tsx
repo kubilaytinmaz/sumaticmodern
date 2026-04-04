@@ -15,7 +15,6 @@ import {
   Activity,
   Database,
   Plug,
-  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -39,11 +38,6 @@ const navigation = [
     name: 'Canlı Veri',
     href: '/live-data',
     icon: Database,
-  },
-  {
-    name: 'Aylık Ciro',
-    href: '/monthly-revenue',
-    icon: TrendingUp,
   },
   {
     name: 'Akıllı Prizler',

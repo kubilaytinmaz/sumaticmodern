@@ -60,14 +60,6 @@ export const endpoints = {
   tuyaDiscover: '/api/v1/tuya-devices/discover',
   tuyaAllStatus: '/api/v1/tuya-devices/status',
   tuyaConfig: '/api/v1/tuya-devices/config',
-
-  // Monthly Revenue
-  monthlyRevenueCurrent: '/api/v1/monthly-revenue/current',
-  monthlyRevenueActive: '/api/v1/monthly-revenue/active',
-  monthlyRevenueSummary: (year: number, month: number) => `/api/v1/monthly-revenue/summary?year=${year}&month=${month}`,
-  monthlyRevenueDeviceCycles: (deviceId: number) => `/api/v1/monthly-revenue/device/${deviceId}/cycles`,
-  monthlyRevenueHistory: '/api/v1/monthly-revenue/history',
-  monthlyRevenueOverview: '/api/v1/monthly-revenue/stats/overview',
 };
 
 /**
