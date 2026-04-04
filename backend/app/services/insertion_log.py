@@ -6,6 +6,10 @@ This module avoids circular imports by keeping insertion log state separate.
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
+from pytz import timezone
+
+# Istanbul timezone
+IST_TIMEZONE = timezone("Europe/Istanbul")
 
 
 class InsertionLogEntry(BaseModel):
@@ -46,7 +50,7 @@ def add_insertion_log(
         counter_19l=counter_19l,
         counter_5l=counter_5l,
         status=status,
-        created_at=datetime.utcnow().isoformat()
+        created_at=datetime.now(IST_TIMEZONE).isoformat()
     )
     _insertion_logs.append(entry)
     if len(_insertion_logs) > _max_entries:

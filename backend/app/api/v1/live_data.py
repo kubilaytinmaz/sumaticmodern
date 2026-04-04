@@ -3,11 +3,13 @@ Live Data API Endpoint
 Provides real-time device data and database insertions for monitoring.
 Also provides direct database browsing capabilities.
 """
+import time as time_module
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from sqlalchemy import select, and_, desc, func, text, cast, String
+from pytz import timezone
 
 from app.core.logging import get_logger
 from app.database import async_session_maker
@@ -20,6 +22,9 @@ from app.services.insertion_log import get_recent_insertions, InsertionLogEntry
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["Live Data"])
+
+# Istanbul timezone
+IST_TIMEZONE = timezone("Europe/Istanbul")
 
 
 class DeviceLiveData(BaseModel):
@@ -97,12 +102,14 @@ async def get_live_data(
                 last_seen_unix = last_seen.get(device_code, 0)
                 last_seen_at = None
                 if last_seen_unix > 0:
-                    last_seen_at = datetime.fromtimestamp(last_seen_unix).isoformat()
+                    # Convert unix timestamp to Istanbul timezone-aware ISO string
+                    last_seen_dt = datetime.fromtimestamp(last_seen_unix, IST_TIMEZONE)
+                    last_seen_at = last_seen_dt.isoformat()
                 
                 # Determine online status
                 from app.config import get_settings
                 settings = get_settings()
-                age = datetime.now().timestamp() - last_seen_unix
+                age = time_module.time() - last_seen_unix
                 is_online = last_seen_unix > 0 and age <= settings.DEVICE_OFFLINE_THRESHOLD_SECONDS
                 
                 # Get last DB reading
@@ -115,8 +122,14 @@ async def get_live_data(
                 )
                 last_reading_obj = reading_result.scalar_one_or_none()
                 if last_reading_obj:
+                    # Ensure timestamp has timezone info for correct frontend display
+                    reading_ts = last_reading_obj.timestamp
+                    if reading_ts.tzinfo is None:
+                        reading_ts = IST_TIMEZONE.localize(reading_ts)
+                    else:
+                        reading_ts = reading_ts.astimezone(IST_TIMEZONE)
                     last_reading = {
-                        "timestamp": last_reading_obj.timestamp.isoformat(),
+                        "timestamp": reading_ts.isoformat(),
                         "counter_19l": last_reading_obj.counter_19l,
                         "counter_5l": last_reading_obj.counter_5l,
                         "status": last_reading_obj.status
@@ -138,7 +151,7 @@ async def get_live_data(
             devices=devices_live,
             recent_insertions=get_recent_insertions(limit_insertions),
             mqtt_status=mqtt_status,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.now(IST_TIMEZONE).isoformat()
         )
         
     except Exception as e:
@@ -184,7 +197,7 @@ async def live_data_websocket(websocket: WebSocket):
             # Send heartbeat
             await websocket.send_json({
                 "type": "heartbeat",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(IST_TIMEZONE).isoformat()
             })
             
     except WebSocketDisconnect:
@@ -236,7 +249,7 @@ async def get_database_stats():
             
             result = await session.execute(
                 select(func.count(DeviceReading.id))
-                .where(DeviceReading.timestamp >= datetime.utcnow() - timedelta(hours=24))
+                .where(DeviceReading.timestamp >= datetime.now(IST_TIMEZONE) - timedelta(hours=24))
             )
             readings_24h = result.scalar() or 0
             
@@ -307,7 +320,7 @@ async def get_database_stats():
             
             return {
                 "stats": [s.model_dump() for s in stats],
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(IST_TIMEZONE).isoformat()
             }
             
     except Exception as e:
@@ -463,7 +476,7 @@ async def browse_devices():
                 "table_name": "devices",
                 "total_count": len(records),
                 "records": records,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(IST_TIMEZONE).isoformat()
             }
             
     except Exception as e:
@@ -594,7 +607,7 @@ async def browse_monthly_revenue():
                 "table_name": "monthly_revenue_records",
                 "total_count": len(records),
                 "records": records,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(IST_TIMEZONE).isoformat()
             }
             
     except Exception as e:
